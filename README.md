@@ -29,6 +29,9 @@ The [published dev1 research notes](docs/RELEASE_NOTES_V050_DEV1.md)
 and [evidence gate](docs/RELEASE_GATE_004AI.md) explicitly retain all
 unverified real-user grants and external security-review conditions.
 Both dev0 and dev1 remain prereleases; v0.4.0 is still Latest stable.
+New builds from the current development branch use **unreleased
+0.5.0.dev2**. For the exact published dev1 bytes, install the
+v0.5.0.dev1 GitHub Release assets, not a source build from main.
 
 A source-distribution archive (.tar.gz) is an **installable code-only
 artifact**, not a substitute for cloning the Git repository: it intentionally
