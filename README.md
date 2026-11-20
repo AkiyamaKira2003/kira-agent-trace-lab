@@ -31,6 +31,8 @@ python -m agent_trace_lab evaluate examples/agentdrift_counterexamples.json
 
 The two adapted data records are **CC BY 4.0**, not MIT; source, authors, license and modifications are recorded in the case study. This two-record sample is **not** a population estimate or a representative attack-detection benchmark.
 
+An additional [independent-label provenance review](docs/INDEPENDENT_AUTHORIZATION_LABELING.md) distinguishes external authors' synthetic scenario labels from authenticated user grants. Its optional, bounded source checker verifies two upstream record hashes and step annotations. Both records **abstain** from real human-authorization judgments and are **ineligible** for real-world authorization precision/recall metrics.
+
 ## Task-bound grant matching (v0.3, opt-in)
 
 Schema **1.1** adds an optional task-authorization audit for selected high-impact tools while preserving schema **1.0**. An auditor supplies independent exact-action grant records for a case; the checker rejects guarded calls without a matching, unconsumed grant.
