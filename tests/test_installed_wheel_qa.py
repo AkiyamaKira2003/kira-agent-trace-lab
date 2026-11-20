@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import subprocess
 from pathlib import Path
 import tempfile
@@ -17,6 +18,7 @@ from scripts.verify_installed_wheel import (
     REQUIRED_WHEEL_MEMBERS, _execute, validate_evaluation, wheel_members,
     RELEASE_LINKS, installed_console_path, validate_console_equivalence,
     validate_release_metadata, source_project_version,
+    validate_import_output_contract,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,6 +67,26 @@ def make_release_metadata_wheel(
 
 
 class InstalledWheelQATests(unittest.TestCase):
+    def test_installed_import_bytes_and_explicit_overwrite_contract(self):
+        before = json.dumps({"cases": [{"id": "old", "trace": [{"tool": "read"}]}]}).encode()
+        after = json.dumps({"cases": [{"id": "new", "trace": [{"tool": "read"}]}]}).encode()
+        validate_import_output_contract(before, before, after, "old", "new")
+
+    def test_installed_import_contract_rejects_unexpected_mutations(self):
+        before = json.dumps({"cases": [{"id": "old", "trace": [{"tool": "read"}]}]}).encode()
+        after = json.dumps({"cases": [{"id": "new", "trace": [{"tool": "read"}]}]}).encode()
+        cases = (
+            (before, b"overwritten without authorization", after),
+            (before, before, before),
+            (before, before, b"invalid json"),
+            (before, before, b'{"cases": null}'),
+            (before, before, json.dumps({"cases": [{"id": "new", "trace": []}]}).encode()),
+            (before, before, json.dumps({"cases": [{"id": "wrong", "trace": [{"tool": "read"}]}]}).encode()),
+        )
+        for pre, blocked, forced in cases:
+            with self.subTest(blocked=blocked, forced=forced), self.assertRaises(SuiteError):
+                validate_import_output_contract(pre, blocked, forced, "old", "new")
+
     def test_expected_package_members_accepted(self):
         with tempfile.TemporaryDirectory() as directory:
             path = make_wheel(Path(directory))

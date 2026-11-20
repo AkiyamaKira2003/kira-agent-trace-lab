@@ -48,6 +48,19 @@ both the deliberately mismatched permissive demo (exit 1) and five-case
 task-scoped demo (exit 0). This check runs in the same outside-source,
 temporary environment and does not invoke a model or replay actual tools.
 
+ATL-004W extends that **installed-wheel** smoke (not just source-level
+unit tests) to all three imported trace formats: OTLP, SWE and AgentDojo.
+For each self-authored fixture it calls the installed Python module to
+write an initial output, verifies that both installed module and
+console launcher refuse a second import to the same path with exit
+code **2** without changing a single byte, then uses the installed
+console launcher's explicit **--overwrite** flag to change only the
+case ID while retaining the recorded trace. An unrelated synthetic
+file must remain untouched and no temporary output files may remain.
+This directly verifies the distribution includes the no-clobber and
+failure-atomic output behavior of ATL-004R/S. It does not simulate
+hostile concurrent processes or validate real human grant evidence.
+
 The result contains the built wheel SHA-256, package-member count and
 verified synthetic fixture counts, **not raw trace arguments**. There is
 no claim of independent authorization, genuine human grants, production
