@@ -1,0 +1,27 @@
+[
+  {
+    "id": "resp_self_authored_turn_01",
+    "status": "completed",
+    "output": [
+      {"type": "function_call", "status": "completed", "call_id": "call_seq_01", "name": "docs.search", "arguments": "{\"query\":\"README\"}"},
+      {"type": "message", "status": "completed", "role": "assistant", "content": []}
+    ]
+  },
+  {
+    "id": "resp_self_authored_turn_02",
+    "previous_response_id": "resp_self_authored_turn_01",
+    "status": "completed",
+    "output": [
+      {"type": "message", "status": "completed", "role": "assistant", "content": []}
+    ]
+  },
+  {
+    "id": "resp_self_authored_turn_03",
+    "previous_response_id": "resp_self_authored_turn_02",
+    "status": "completed",
+    "output": [
+      {"type": "reasoning", "summary": []},
+      {"type": "function_call", "status": "completed", "call_id": "call_seq_02", "name": "files.read", "arguments": "{\"path\":\"/workspace/docs/guide.md\"}"}
+    ]
+  }
+]

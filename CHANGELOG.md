@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev1 development; not in published v0.5.0.dev0)
 
+- ATL-004AF: add a strictly bounded offline import-responses-sequence
+  command for a caller-authored ordered array of completed Responses
+  API objects. Reject duplicate response/call IDs, inconsistent explicit
+  previous_response_id links, unsupported hosted tools and oversized
+  archives without inferring provenance, consent or executing calls.
+  Keep the single-response importer unchanged.
 - ATL-004AE: opt-in evaluate --summary-only JSON/text for deterministic
   aggregate caller-label counts without individual case, tool or
   argument values; explicit unverified provenance and no real-world

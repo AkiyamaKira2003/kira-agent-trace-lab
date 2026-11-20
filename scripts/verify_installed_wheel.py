@@ -31,6 +31,7 @@ EXAMPLES = (
     "swe_recorded_row_synthetic.json",
     "swe_structural_policy.json",
     "responses_function_calls_synthetic.json",
+    "responses_sequence_synthetic.json",
     "agentdojo_recorded_synthetic.json",
     "agentdojo_policy_simulated_scope.json",
     "demo_permissive.json",
@@ -321,7 +322,7 @@ def run(wheel: Path) -> dict[str, Any]:
             [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
              "demo_task_scoped.json", "--format", "json"], work, env))
         launcher = installed_console_path(site, os.name)
-        # Test all four actual installed import commands, independently of
+        # Test all installed import commands, independently of
         # source-checkout imports. Two no-clobber invocations must preserve
         # the exact bytes and an explicit overwrite must change only case_id.
         import_cases = (
@@ -330,6 +331,7 @@ def run(wheel: Path) -> dict[str, Any]:
             ("agentdojo", "agentdojo_recorded_synthetic.json",
              "agentdojo_policy_simulated_scope.json"),
             ("responses", "responses_function_calls_synthetic.json", "suite.json"),
+            ("responses-sequence", "responses_sequence_synthetic.json", "suite.json"),
         )
         untouched = work / "unrelated_private_sentinel.txt"
         sentinel = b"UNRELATED_SYNTHETIC_PRIVATE_FILE_DO_NOT_REPLACE"
@@ -345,6 +347,13 @@ def run(wheel: Path) -> dict[str, Any]:
             module = [sys.executable, "-S", "-m", "agent_trace_lab"]
             _execute([*module, *common], work, env)
             original = (work / output).read_bytes()
+            if kind == "responses-sequence":
+                parsed = json.loads(original)
+                if parsed["cases"][0]["trace"] != [
+                    {"tool": "docs.search", "arguments": {"query": "README"}},
+                    {"tool": "files.read", "arguments": {"path": "/workspace/docs/guide.md"}},
+                ]:
+                    raise SuiteError("installed response sequence lost call order")
             _execute([*module, *common], work, env, expected_exit=2)
             _execute([str(launcher), *common], work, env, expected_exit=2)
             blocked = (work / output).read_bytes()
@@ -516,7 +525,9 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_evaluation_mismatch_exit_and_overwrite_verified": True,
         "installed_aggregate_only_report_verified": True,
         "installed_import_explicit_overwrite_verified": True,
-        "installed_import_formats_verified": len(import_cases),
+        "installed_import_formats_verified": len(import_cases) - 1,
+        "installed_import_commands_verified": len(import_cases),
+        "installed_responses_sequence_preserves_order_verified": True,
         "isolated_site_import_verified": True,
         "research_scripts_shipped_in_wheel": False,
         "authenticated_user_grants_verified": False,
