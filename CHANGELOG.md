@@ -2,6 +2,7 @@
 
 ## Unreleased (0.5.0.dev0 development; not in v0.4.0 wheel)
 
+- ATL-004M: optional two-build SOURCE_DATE_EPOCH wheel comparison, negative tests for differing bytes/unsafe inputs, and per-runner CI verification; no cross-platform identity claim.
 - Add an offline, bounded single-run AgentDojo recorded tool-call importer and CLI.
 - Add synthetic fixtures, negative tests and CI smoke; old schema 1.0/1.1 and existing importers remain compatible.
 - Independently import two pinned AgentDojo benchmark runs and compare a permissive allowlist to a simulated-calendar-task allowlist. The selected injected run contains an out-of-scope email action that the permissive allowlist accepts. These are synthetic-scenario contrasts, **not** real-user authorization accuracy metrics.

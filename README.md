@@ -128,6 +128,14 @@ ATL-004K adds an opt-in [privacy-limited argument-shape audit](docs/AGENTDOJO_AR
 
 ATL-004L adds an [isolated installed-wheel smoke gate](docs/ISOLATED_WHEEL_QA.md), verifying that the experimental `0.5.0.dev0` CLI can import and evaluate synthetic AgentDojo runs outside the checkout. This checks installability and package boundaries, **not** independent authorization accuracy. The source-only research audit scripts are intentionally **not** part of the installed wheel.
 
+## Development wheel determinism (ATL-004M)
+
+An optional [two-build reproducibility audit](docs/DETERMINISTIC_WHEEL_QA.md)
+pins SOURCE_DATE_EPOCH to the Git commit timestamp, builds twice and
+compares the resulting wheel SHA-256 on the same machine/runner. This checks
+repeatability in one environment, not cross-platform binary identity and
+not agent-authorization effectiveness.
+
 ## Design
 
 An input JSON suite has:
