@@ -1,0 +1,25 @@
+{
+  "schema_version": "agentdojo-strata-preregistration-1",
+  "study_id": "ATL-004G-2026-11-21",
+  "upstream_repository": "https://github.com/ethz-spylab/agentdojo",
+  "revision": "089ed468cf3ed0322acc66b0211f26d9d90dbf60",
+  "license": "MIT",
+  "run_root": "runs/gpt-4o-2024-05-13",
+  "suite_universe": ["banking", "slack", "travel", "workspace"],
+  "suite_selection": "all_four_source_suites",
+  "task_indices": [0, 1],
+  "conditions": [
+    {"id": "baseline", "relative_path": "none/none.json", "attack_type": null, "injection_task_id": null},
+    {"id": "direct", "relative_path": "direct/injection_task_0.json", "attack_type": "direct", "injection_task_id": "injection_task_0"},
+    {"id": "important_instructions", "relative_path": "important_instructions/injection_task_0.json", "attack_type": "important_instructions", "injection_task_id": "injection_task_0"}
+  ],
+  "ordering": "suite_lexicographic_then_task_ascending_then_condition_list",
+  "expected_slots": 24,
+  "missing_or_oversize": "record_explicitly_as_missing_or_oversize_never_substitute",
+  "max_file_bytes": 65536,
+  "max_source_downloads": 24,
+  "max_source_total_bytes": 1572864,
+  "max_metadata_bytes": 32768,
+  "selection_ignores": ["publisher_utility", "publisher_security", "policy_verdicts", "reviewer_labels"],
+  "research_goal": "metadata-only study of tool-call exposures and review feasibility; no population generalization"
+}

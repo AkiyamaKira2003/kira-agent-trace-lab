@@ -116,6 +116,8 @@ Counterexample for overrestrictive policies: the opt-in `python -m scripts.audit
 
 To avoid reporting only cherry-picked cases, the [cross-suite sampling protocol](docs/AGENTDOJO_SAMPLING_PROTOCOL.md) defines an explicitly **non-random**, predeclared source-selection rule and an opt-in `python -m scripts.audit_agentdojo_sampling --check-upstream` audit. It checks four pinned recorded runs from banking and workspace (two no-injection, two injection-attempt exposures) and reports **four simulated-scope abstentions and four human-grant abstentions**. This is a reproducibility/coverage check, **not** a detection-rate benchmark.
 
+The follow-up [preregistered stratified study](docs/AGENTDOJO_STRATIFIED_REVIEW.md) froze its sampling rule in Git commit `3385f7d` **before** reading new results: four suites, two fixed task IDs and three exposure conditions (24 slots). Its bounded `python -m scripts.audit_agentdojo_strata --check-upstream` audit identified **20 available, four missing** recorded runs; the missing Slack `injection_task_0` slots are not replaced. All 24 simulated-scope reviews are **pending/not_reviewed** and all 24 genuine-human authorization labels **abstain**. No external reviewers, trusted grants or detection-accuracy statistics are claimed.
+
 ## Design
 
 An input JSON suite has:
