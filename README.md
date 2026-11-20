@@ -22,6 +22,10 @@ Development main after the published v0.5.0.dev0 tag uses the
 **distinct, unreleased 0.5.0.dev1 package version** for new source builds.
 For the exact published research artifact and its SHA-256, use the
 tagged v0.5.0.dev0 release above rather than rebuilding from main.
+The [v0.5.0.dev1 research-only prerelease candidate notes](docs/RELEASE_NOTES_V050_DEV1.md)
+and [conditional evidence gate](docs/RELEASE_GATE_004AI.md)
+document later changes and still-unverified security/reviewer gates.
+This is a release candidate, **not yet a published version**.
 
 A source-distribution archive (.tar.gz) is an **installable code-only
 artifact**, not a substitute for cloning the Git repository: it intentionally
