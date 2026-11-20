@@ -125,6 +125,76 @@ class ImportOutputSafetyTests(unittest.TestCase):
                     _write_import_suite(target, {"synthetic": True}, overwrite=True)
             self.assertFalse(target.exists())
 
+    def test_partial_temporary_write_never_exposes_output(self) -> None:
+        real_create = tempfile.NamedTemporaryFile
+
+        class PartialFailure:
+            def __init__(self, actual):
+                self.actual = actual
+                self.name = actual.name
+
+            def __enter__(self):
+                self.actual.__enter__()
+                return self
+
+            def __exit__(self, kind, value, tb):
+                return self.actual.__exit__(kind, value, tb)
+
+            def write(self, payload):
+                self.actual.write(payload[:10])
+                self.actual.flush()
+                raise OSError("synthetic interrupted write")
+
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            for overwrite in (False, True):
+                with self.subTest(overwrite=overwrite):
+                    output = folder / "output.json"
+                    if overwrite:
+                        output.write_text(SENTINEL, encoding="utf-8")
+                    with patch(
+                        "agent_trace_lab.cli.tempfile.NamedTemporaryFile",
+                        side_effect=lambda *args, **kwargs: PartialFailure(
+                            real_create(*args, **kwargs)
+                        ),
+                    ):
+                        with self.assertRaisesRegex(OSError, "synthetic interrupted"):
+                            _write_import_suite(
+                                output, {"synthetic": True}, overwrite=overwrite,
+                            )
+                    if overwrite:
+                        self.assertEqual(output.read_text(encoding="utf-8"), SENTINEL)
+                    else:
+                        self.assertFalse(output.exists())
+                    self.assertEqual(list(folder.glob(".agent-trace-import-*.tmp")), [])
+
+    def test_failed_atomic_commit_cleans_temp_without_overwriting(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            output = folder / "existing.json"
+            output.write_text(SENTINEL, encoding="utf-8")
+            with patch(
+                "agent_trace_lab.cli.os.replace",
+                side_effect=OSError("synthetic replace failure"),
+            ):
+                with self.assertRaisesRegex(OSError, "synthetic replace"):
+                    _write_import_suite(output, {"synthetic": True}, overwrite=True)
+            self.assertEqual(output.read_text(encoding="utf-8"), SENTINEL)
+            self.assertEqual(list(folder.glob(".agent-trace-import-*.tmp")), [])
+
+    def test_failed_exclusive_hardlink_commit_leaves_no_output(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            output = folder / "new.json"
+            with patch(
+                "agent_trace_lab.cli.os.link",
+                side_effect=OSError("synthetic filesystem rejects hardlinks"),
+            ):
+                with self.assertRaisesRegex(OSError, "synthetic filesystem"):
+                    _write_import_suite(output, {"synthetic": True}, overwrite=False)
+            self.assertFalse(output.exists())
+            self.assertEqual(list(folder.glob(".agent-trace-import-*.tmp")), [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,6 +17,17 @@ by default. If the named destination already exists, including a
 symbolic link or a hard link, the command exits **2**, explains that
 the output already exists, and preserves the existing file.
 
+ATL-004S strengthens the first-write path: instead of creating the
+final filename and writing directly into it, the importer first writes
+and closes the entire JSON payload in a private same-directory
+temporary file. Only after a successful write does it atomically
+hard-link that complete file into a previously absent final output
+name. Interrupted writes, failed hardlink creation, or a competing
+creator cannot leave a partial final file. Temporary files are
+cleaned up on those failures. The target filesystem must support
+hardlinks in the selected output directory; otherwise creation
+fails closed rather than falling back to unsafe partial writes.
+
 To intentionally replace an existing regular output file, add
 the optional **--overwrite** flag to the importer invocation.
 This opt-in writes a private temporary file beside the destination
@@ -51,6 +62,10 @@ replacement, hardlink isolation, input source protection and
 symbolic-link refusal. The real symbolic-link integration test
 skips when Windows runner policy denies symlink creation; a
 mock-based test still covers the guard on every platform.
+Three additional fault-injection tests cover interrupted temporary
+writes, failed default hardlink publication and failed explicit
+atomic replacement, asserting that only complete outputs are
+visible and cleanup does not modify existing destination content.
 
 The standard GitHub Actions matrix checks Python 3.10/3.12 on
 Windows and Ubuntu. A passing synthetic fixture is a functional
