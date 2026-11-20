@@ -59,6 +59,36 @@ The exact full text also reports synthetic confusion-matrix counts. The
 are **fixture-label conformance statistics**, not agent safety performance.
 Do not reuse them as accuracy claims in a portfolio description.
 
+## ATL-004Y — compare one trace set without mixing in fixture labels
+
+The earlier side-by-side example evaluates **one permissive case**
+versus **five distinct guarded-policy cases**. Those fixture totals
+should not be compared as if they were an A/B experiment.
+For a fair policy-only contrast, the new read-only comparator
+reuses the **same single recorded case** and applies one candidate
+policy document containing only schema_version and policy:
+
+```sh
+python -m agent_trace_lab compare-policies examples/demo_permissive.json --candidate-policy examples/compare_candidate_task_guarded.json
+```
+
+Expected behavior for this entirely fictional case:
+
+```text
+Policy decisions changed: 1/1 (allow->deny=1, deny->allow=0). Candidate ignored grant records: 0.
+CHANGED unrequested_forward: baseline=allow candidate=deny baseline_codes=none candidate_codes=TASK_GRANT_REQUIRED
+```
+
+The compare command reports changes and reason-code categories;
+**it does not print trace argument values**, infer human approval,
+claim security accuracy or execute anything. Exit **0** means a
+valid comparison completed even if all decisions changed; exit **2**
+means input/validation failure. To avoid silently misrepresenting
+grants, a comparison *to* schema 1.0 explicitly counts source
+cases whose schema 1.1 grant records were inapplicable and ignored.
+Case identifiers themselves remain visible, so never use sensitive
+case IDs in reports intended to be public.
+
 ## Verify the installed development wheel instead of trusting the checkout
 
 From this repository with Python 3.10+:

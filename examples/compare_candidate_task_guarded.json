@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.1",
+  "policy": {
+    "max_actions": 5,
+    "tools": {
+      "search_inbox": {},
+      "forward_email": {}
+    },
+    "task_guarded_tools": ["forward_email"]
+  }
+}

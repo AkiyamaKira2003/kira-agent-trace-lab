@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 from urllib.parse import urlsplit
 
-from .schema import _exact_arguments, validate_suite
+from .schema import _exact_arguments, _keys, validate_suite
 
 
 def _path_permitted(value: Any, roots: list[str]) -> tuple[bool, str]:
@@ -125,4 +126,73 @@ def evaluate_suite(suite: dict[str, Any]) -> dict[str, Any]:
             "confusion": {"tp": tp, "tn": tn, "fp": fp, "fn": fn},
         },
         "cases": results,
+    }
+
+
+def compare_policies(
+    baseline_suite: dict[str, Any], candidate_document: dict[str, Any],
+) -> dict[str, Any]:
+    """Compare decisions for identical recorded cases without trusting labels.
+
+    The candidate document contains only a schema_version and a policy.
+    Expected case labels never influence the comparison. No raw arguments,
+    tool names or grant evidence are included in the result.
+    """
+    before = evaluate_suite(baseline_suite)
+    candidate_document = _keys(
+        candidate_document, "candidate_policy", {"schema_version", "policy"},
+    )
+    candidate_version = candidate_document["schema_version"]
+    candidate_policy = candidate_document["policy"]
+    validate_suite({
+        "schema_version": candidate_version,
+        "policy": candidate_policy,
+        "cases": [{"id": "candidate_schema_check", "expected": "allow", "trace": []}],
+    })
+    candidate_cases = copy.deepcopy(baseline_suite["cases"])
+    ignored_grants = 0
+    if candidate_version == "1.0":
+        # Schema 1.0 does not understand grants. Make the loss explicit
+        # instead of silently pretending the candidate used those records.
+        for case in candidate_cases:
+            if "task_authorization" in case:
+                del case["task_authorization"]
+                ignored_grants += 1
+    after = evaluate_suite({
+        "schema_version": candidate_version,
+        "policy": candidate_policy,
+        "cases": candidate_cases,
+    })
+    changed = allow_to_deny = deny_to_allow = 0
+    cases: list[dict[str, Any]] = []
+    for original, proposed in zip(before["cases"], after["cases"]):
+        prior = original["actual"]
+        later = proposed["actual"]
+        is_changed = prior != later
+        if is_changed:
+            changed += 1
+            if prior == "allow":
+                allow_to_deny += 1
+            else:
+                deny_to_allow += 1
+        cases.append({
+            "id": original["id"],
+            "baseline": prior,
+            "candidate": later,
+            "changed": is_changed,
+            "baseline_codes": sorted({item["code"] for item in original["violations"]}),
+            "candidate_codes": sorted({item["code"] for item in proposed["violations"]}),
+        })
+    return {
+        "baseline_schema_version": baseline_suite["schema_version"],
+        "candidate_schema_version": candidate_version,
+        "summary": {
+            "total_cases": len(cases),
+            "changed": changed,
+            "allow_to_deny": allow_to_deny,
+            "deny_to_allow": deny_to_allow,
+            "unchanged": len(cases) - changed,
+            "candidate_ignored_grant_cases": ignored_grants,
+        },
+        "cases": cases,
     }
