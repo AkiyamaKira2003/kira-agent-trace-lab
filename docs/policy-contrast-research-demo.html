@@ -35,8 +35,10 @@
     .card { border: 1px solid #2e4365; background: #15223b; border-radius: 18px; padding: 23px; }
     .card p { color: #c3d2e7; margin-bottom: 0; }
     .verdict { font-size: 2rem; font-weight: 800; margin: 0 0 8px; }
-    .allow { color: #7ee8b7; }
-    .deny { color: #ffcf87; }
+    /* These selectors must outrank .card p or the two verdicts
+       silently fall back to identical muted body-copy colors. */
+    .card p.verdict.allow { color: #7ee8b7; }
+    .card p.verdict.deny { color: #ffcf87; }
     .metrics {
       border: 1px solid #2e4365; border-radius: 18px;
       background: #101d34; margin: 22px 0; padding: 22px;

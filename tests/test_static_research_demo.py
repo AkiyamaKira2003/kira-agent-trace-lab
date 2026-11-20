@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEMO = ROOT / "docs" / "policy-contrast-research-demo.html"
 BASE = ROOT / "examples" / "demo_permissive.json"
 CANDIDATE = ROOT / "examples" / "compare_candidate_task_guarded.json"
+PREVIEW = ROOT / "docs" / "images" / "policy-contrast-qa-1600.png"
 
 
 class DemoReader(HTMLParser):
@@ -132,6 +133,31 @@ class OfflineResearchDemoTests(unittest.TestCase):
         self.assertIn("grid-template-columns: 1fr;", self.markup)
         self.assertRegex(self.markup, r"max-width:\s*980px")
         self.assertNotRegex(self.markup, r"position:\s*fixed")
+
+    def test_verdict_colors_outrank_generic_card_paragraphs(self):
+        # The generic .card p selector has higher specificity than
+        # bare .allow/.deny: real-browser pixel QA caught both verdicts
+        # displaying the same muted text color.
+        self.assertRegex(
+            self.markup, r"\.card\s+p\.verdict\.allow\s*\{\s*color:\s*#7ee8b7\s*;\s*\}",
+        )
+        self.assertRegex(
+            self.markup, r"\.card\s+p\.verdict\.deny\s*\{\s*color:\s*#ffcf87\s*;\s*\}",
+        )
+
+    def test_actual_desktop_preview_png_is_in_repo_not_in_html_dependencies(self):
+        # README preview comes from the one-browser Chrome screenshot QA,
+        # rather than embedding a remote image inside the offline HTML.
+        data = PREVIEW.read_bytes()
+        self.assertGreater(len(data), 10000)
+        self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(data[12:16], b"IHDR")
+        self.assertEqual(
+            (int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")),
+            (1600, 900),
+        )
+        self.assertIn("docs/images/policy-contrast-qa-1600.png", (ROOT / "README.md").read_text(encoding="utf-8"))
+        self.assertNotIn("policy-contrast-qa-1600.png", self.markup)
 
 
 if __name__ == "__main__":
