@@ -9,6 +9,7 @@ Research date **2026-11-20 (Asia/Ho_Chi_Minh)**. Sources below were checked as r
 | [Promptfoo](https://github.com/promptfoo/promptfoo) | Prompt/agent evaluation and automated red-teaming | MIT | Full-featured alternative; this lab intentionally has a narrower stdlib-only contract. |
 | [OWASP AISVS research](https://github.com/OWASP/AISVS) | AI application security guidance | Verify upstream before reuse | Trust boundaries and least-privilege principles, not proof this tool blocks attacks. |
 | [OpenTelemetry GenAI execute-tool](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/execute-tool.md) | Standard tool-execution spans with optional recorded arguments | Refer to upstream | Import of a restricted OTLP JSON format; arguments are opt-in and can contain sensitive data. |
+| [AgentDrift](https://github.com/Asif-0209/AgentDrift) | Independently authored **synthetic** trajectories with per-step benign/hijacked labels | CC BY 4.0 data | Demonstrates a task-authorization semantic gap that a tool-name allowlist cannot close. See docs/EXTERNAL_CASE_STUDY.md; source labels differ from our policy verdicts. |
 
 **Research hypothesis:** A deterministic, inspectable checker of *recorded tool actions* may be useful as a low-cost CI assertion, especially where model-based graders produce variable results. Its limits are deliberate: no LLMs, no callbacks, no network calls, no automatic attacks, no inferred hidden actions.
 
