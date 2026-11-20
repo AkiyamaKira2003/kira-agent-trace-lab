@@ -84,6 +84,13 @@ In a 1.1 policy, `task_guarded_tools` names must already be in the tool allowlis
 
 **Security boundary:** this offline evaluator **does not authenticate the user, validate source_ref or prove that a grant was genuinely issued**. A malicious party could fabricate a matching grant if permitted to author the suite. A separate trusted system must establish and protect actual approval evidence. Never use these evaluation results as authorization to execute real tools. See the [design and threat model](docs/TASK_AUTHORIZATION_DESIGN.md).
 
+All three recorded trace importers (OTLP, SWE, AgentDojo) now refuse to
+overwrite an existing output file by default. To repeat an import to
+the same destination, use a new filename or explicitly pass
+**--overwrite**. The opt-in replacement is atomic for regular files
+and refuses symbolic-link destinations; see
+[import output safety](docs/IMPORT_OUTPUT_SAFETY.md).
+
 ## Import OpenTelemetry tool traces (v0.2)
 
 The converter accepts a saved **OTLP/HTTP JSON** export using OpenTelemetry's GenAI execute-tool span attributes: `gen_ai.operation.name=execute_tool`, `gen_ai.tool.name`, and opt-in `gen_ai.tool.call.arguments`. Supported argument formats are JSON-object strings or a limited structured OTLP `kvlistValue`.

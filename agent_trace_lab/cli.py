@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 from .engine import evaluate_suite
@@ -12,6 +14,37 @@ from .schema import SuiteError, load_json_document, load_suite
 from .otlp import import_otlp
 from .swe import import_swe_row
 from .agentdojo import import_agentdojo_run
+
+
+def _write_import_suite(path: Path, suite: dict, *, overwrite: bool) -> None:
+    """Write sensitive imported arguments; default must never replace a file."""
+    payload = json.dumps(suite, indent=2, ensure_ascii=False) + "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not overwrite:
+        try:
+            # Exclusive creation is atomic, also refusing existing symlinks.
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError as exc:
+            raise SuiteError("output already exists; choose a new path or use --overwrite") from exc
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(payload)
+        return
+    if path.is_symlink():
+        raise SuiteError("refusing --overwrite on a symbolic-link output")
+    # Explicit overwrite uses a private sibling temp file followed by an
+    # atomic replace; never follow a pre-existing output hardlink or symlink.
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=".agent-trace-import-", suffix=".tmp", delete=False,
+        ) as stream:
+            tmp_path = Path(stream.name)
+            stream.write(payload)
+        os.replace(tmp_path, path)
+    finally:
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,18 +60,21 @@ def main(argv: list[str] | None = None) -> int:
     importer.add_argument("--case-id", required=True, help="unique ID for the imported case")
     importer.add_argument("--expected", choices=("allow", "deny"), required=True, help="human-provided ground truth label")
     importer.add_argument("--output", type=Path, required=True, help="output suite file (may contain sensitive arguments)")
+    importer.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output file")
     swe = subcommands.add_parser("import-swe", help="convert a local recorded SWE tool-call row into a suite")
     swe.add_argument("row", type=Path, help="a single saved JSON row, not a dataset API response envelope")
     swe.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
     swe.add_argument("--case-id", required=True, help="unique ID for the imported case")
     swe.add_argument("--expected", choices=("allow", "deny"), required=True, help="caller-supplied label, never inferred from resolved")
     swe.add_argument("--output", type=Path, required=True, help="output suite file (may contain sensitive arguments)")
+    swe.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output file")
     dojo = subcommands.add_parser("import-agentdojo", help="convert a locally saved AgentDojo recorded run into a suite")
     dojo.add_argument("run", type=Path, help="one AgentDojo JSON run; no remote fetch or replay")
     dojo.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
     dojo.add_argument("--case-id", required=True, help="unique ID for the imported case")
     dojo.add_argument("--expected", choices=("allow", "deny"), required=True, help="caller-reviewed scenario label; never inferred from the run")
     dojo.add_argument("--output", type=Path, required=True, help="private output suite (may include recorded argument values)")
+    dojo.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output file")
     args = parser.parse_args(argv)
     try:
         if args.command == "import-agentdojo":
@@ -51,8 +87,7 @@ def main(argv: list[str] | None = None) -> int:
                 case_id=args.case_id,
                 expected=args.expected,
             )
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(json.dumps(suite, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            _write_import_suite(args.output, suite, overwrite=args.overwrite)
             print(
                 f"Imported {len(suite['cases'][0]['trace'])} recorded AgentDojo tool calls. "
                 "Expected label is caller-provided, not inferred from the benchmark's utility/security flags. "
@@ -69,8 +104,7 @@ def main(argv: list[str] | None = None) -> int:
                 case_id=args.case_id,
                 expected=args.expected,
             )
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(json.dumps(suite, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            _write_import_suite(args.output, suite, overwrite=args.overwrite)
             print(
                 f"Imported {len(suite['cases'][0]['trace'])} recorded tool calls. "
                 "Label was caller-provided and is not independently verified. "
@@ -87,8 +121,7 @@ def main(argv: list[str] | None = None) -> int:
                 case_id=args.case_id,
                 expected=args.expected,
             )
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(json.dumps(suite, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            _write_import_suite(args.output, suite, overwrite=args.overwrite)
             print(
                 f"Imported {len(suite['cases'][0]['trace'])} tool spans. "
                 "Label was user-provided, not independently verified. "
