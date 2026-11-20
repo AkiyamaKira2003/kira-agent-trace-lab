@@ -1,9 +1,12 @@
 # Changelog
 
-## Unreleased
+## v0.3.0 — 2026-11-20
 
 - Attributed external AgentDrift **synthetic** action-case adaptation under CC BY 4.0.
 - Regression test deliberately demonstrates task-authorization blind spots: one benign match and one hijacked mismatch under a permissive tool-name policy. This is a two-case case study, not a model-safety benchmark.
+- Added opt-in schema 1.1 with exact-action, single-use task grants and default-deny behavior for named guarded tools.
+- Kept schema 1.0 unchanged; compatible offline OpenTelemetry import remains untrusted and does not manufacture grants.
+- Added explicit authorization threat-model ADR, fixture-based CLI smoke tests and negative controls.
 
 ## v0.2.0 — 2026-11-20
 
