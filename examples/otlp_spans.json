@@ -1,0 +1,47 @@
+{
+  "resourceSpans": [
+    {
+      "scopeSpans": [
+        {
+          "spans": [
+            {
+              "name": "unrelated span"
+            },
+            {
+              "name": "execute_tool files.read",
+              "traceId": "10000000000000000000000000000001",
+              "startTimeUnixNano": "1795146000000000000",
+              "attributes": [
+                {"key": "gen_ai.operation.name", "value": {"stringValue": "execute_tool"}},
+                {"key": "gen_ai.tool.name", "value": {"stringValue": "files.read"}},
+                {
+                  "key": "gen_ai.tool.call.arguments",
+                  "value": {"stringValue": "{\"path\":\"/workspace/docs/guide.md\"}"}
+                }
+              ]
+            },
+            {
+              "name": "execute_tool docs.search",
+              "traceId": "10000000000000000000000000000001",
+              "startTimeUnixNano": "1795146000000000001",
+              "attributes": [
+                {"key": "gen_ai.operation.name", "value": {"stringValue": "execute_tool"}},
+                {"key": "gen_ai.tool.name", "value": {"stringValue": "docs.search"}},
+                {
+                  "key": "gen_ai.tool.call.arguments",
+                  "value": {
+                    "kvlistValue": {
+                      "values": [
+                        {"key": "query", "value": {"stringValue": "readme"}}
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
