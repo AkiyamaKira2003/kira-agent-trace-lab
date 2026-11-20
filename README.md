@@ -119,6 +119,21 @@ append **--redact-case-ids**. It replaces case IDs with stable
 per-report ordinal aliases such as case_0001 while preserving decisions.
 This is **case-ID pseudonymization**, not anonymization of arbitrary
 trace contents, file paths or diagnostic errors.
+To save the same text/JSON report safely instead of writing it to
+stdout, pass `--output artifacts/policy_delta.json` (the
+destination must be new). Repeating the operation on the same path
+returns exit **2** without replacing data. Use `--overwrite`
+only when deliberate replacement of an existing regular file is
+intended. Both the baseline suite and candidate policy are protected,
+and `--redact-case-ids` also applies to saved reports:
+
+```sh
+python -m agent_trace_lab compare-policies examples/demo_permissive.json --candidate-policy examples/compare_candidate_task_guarded.json --format json --redact-case-ids --output artifacts/policy_delta.json
+```
+
+The report shows **policy decision changes, not externally validated
+security or human-authorization accuracy**. Saved outputs are
+committed atomically; original inputs are not modified.
 See the [policy delta verification](docs/POLICY_CONTRAST_DEMO.md).
 
 To verify these exact outcomes from an isolated installed development wheel,
