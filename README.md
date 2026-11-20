@@ -124,6 +124,8 @@ An optional source-span provenance auditor (`python -m scripts.agentdojo_span_pr
 
 ATL-004J adds a [source-pinned task-intent feasibility matrix](docs/AGENTDOJO_TASK_SCOPE_FEASIBILITY.md). It summarizes **eight** source-reviewed AgentDojo tasks and preserves the **24 planned / 20 present / four missing** run denominator, without copying prompts, recipients or raw tool arguments. An offline `python -m scripts.audit_agentdojo_task_scope` check and an opt-in `--check-upstream` AST source check verify provenance. **Eleven nonreference tool-name occurrences are only reference-overlap observations, not unauthorized actions or attack detections**; every simulated-action and real-human-grant label remains `abstain`.
 
+ATL-004K adds an opt-in [privacy-limited argument-shape audit](docs/AGENTDOJO_ARGUMENT_SHAPE_AUDIT.md). The `python -m scripts.audit_agentdojo_argument_shapes --check-upstream` command checks 20 SHA-pinned recorded runs and publishes **only safe top-level argument field names and JSON types** for 48 actions (four unsafe field-name occurrences redacted). No actual target, recipient, amount or message content is exposed; neither these shapes nor the benchmark's tool references prove authorization.
+
 ## Design
 
 An input JSON suite has:
