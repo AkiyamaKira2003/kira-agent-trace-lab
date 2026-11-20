@@ -1,10 +1,13 @@
 # Changelog
 
-## Unreleased (v0.4.0.dev0)
+## v0.4.0 — 2026-11-20
 
-- Experimental, offline import of SWE-agent-style **single-row** recorded assistant tool calls with strict JSON arguments and bounded input.
+- Experimental, offline import of SWE-agent-style **single-row** recorded assistant tool calls with strict JSON arguments and bounded input. The importer is available in this stable *package release*, but the importer format remains an experimental integration.
 - Ignore model thoughts, tool outputs and task-success labels when producing the action suite. Never execute imported tools or infer grants.
-- Synthetic structural tests and CLI smoke test. Raw NVIDIA dataset compatibility is not fully verified because its public rows endpoint returned HTTP 502 and later timed out.
+- Source-format validation progressed beyond the initial HTTP 502/timeout: one recorded NVIDIA Open-SWE-Traces benchmark run (97 messages and 48 calls) imported successfully from an externally retrieved first-row preview. Relevant identity, message-role and exact action-argument fields were independently reproduced from the matching revision-pinned source Parquet shard using bounded HTTP byte ranges.
+- Optional source-audit scripts check the dataset server's revision header and reproduce the pinned Parquet action fields without executing the calls; PyArrow is optional and **not** a runtime dependency.
+- 79 local unit tests and GitHub CI on Windows and Ubuntu with Python 3.10 and 3.12. Input/source content and human authorization labels remain separate verification questions.
+- **Limits:** no independently labeled real-user authorization corpus or representative AI-agent security benchmark; no proof of complete conversation-row byte equality, approval authenticity or runtime enforcement. No accuracy or safety claims are implied by the reported synthetic fixture scores.
 
 ## v0.3.0 — 2026-11-20
 

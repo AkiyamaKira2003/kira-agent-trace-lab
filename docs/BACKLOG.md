@@ -24,7 +24,7 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-012A | DONE | Verify one public recorded benchmark row can be imported without executing tools | ATL-011 | First-rows preview complete; 107,514-byte private row SHA-256 recorded; 48/48 tool calls parsed; no raw trace on GitHub | 20m |
 | ATL-012B | DONE | Verify preview cache's reported revision and repeated row-byte consistency, without bulk download | ATL-012A | Hub revision metadata and viewer X-Revision match; saved row SHA-256 matches fresh preview; 69 local tests PASS; not a pinned-Parquet proof | 20m |
 | ATL-012C | DONE | Retrieve relevant action columns directly from immutable source shard via bounded HTTP byte ranges | ATL-012B | 14,327,528 transferred bytes, 48 actions and 97 roles exact match; 79 local tests PASS; no full source-row equality/authorization claims | 25m |
-| ATL-013 | NOT_STARTED | Review prerelease package/readme, release readiness and stable-v0.4 claims | ATL-012C | Reproducible wheel, CI, CLI, docs, privacy and clean Git; release only if all checks pass | 25m |
+| ATL-013 | IN_PROGRESS | Review prerelease package/readme, release readiness and stable-v0.4 claims | ATL-012C | Reproducible wheel, CI, CLI, docs, privacy and clean Git; release only if all checks pass | 25m |
 
 Local baseline **2026-11-20**: Python 3.12.10, **11 unit tests passed**, **8/8 example labels matched**; no claim of real-agent benchmark performance.
 
@@ -123,3 +123,9 @@ Released version **v0.2.0** remains available at `https://github.com/AkiyamaKira
 - **Tests:** `python -m unittest discover -s tests -q` **79/79 PASS**; real end-to-end pinned partial-column probe PASS. Optional PyArrow 21 installed only in ignored `artifacts/rowproof_deps`; no runtime package dependency change. Raw recorded arguments never staged.
 - **Scope:** action-field provenance is independently tied to immutable Parquet revision; complete row/content byte identity is NOT proven, and no independent human authorization ground truth exists. The tool remains an offline audit prototype.
 - **NEXT_ACTION:** PR and GitHub CI review, merge into `main` and check Issue #9 action-level closure; then ATL-013 inspect README / wheel build / offline CLI / GitHub release gate. ATL-004 independent labels remain open; do not claim safety detection accuracy or integrate KiraShop prematurely.
+
+### ATL-012C merged checkpoint / ATL-013 release-readiness — 2026-11-20
+
+- **Verified main:** PR [#11](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/pull/11) merged at `539e548f35d741c307956d1ffd3fae6edea07ea7`, 8/8 Windows/Ubuntu CI jobs PASS and 79/79 local tests PASS on merged `main`; clean working tree. [Issue #9](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/9) CLOSED for pinned-source action-level interoperability only; broader ATL-004/006 human authorization label validation remains unfinished.
+- **Release review:** pre-existing package `v0.4.0.dev0` wheel successfully rebuilt offline in ignored `artifacts/release-audit/`; CHANGELOG was stale and erroneously still described upstream 502 as current incompatibility. A version/documentation release candidate is being checked separately as `release/v0.4.0`.
+- **NEXT_ACTION:** build candidate `0.4.0` wheel, isolate-install and smoke-test all CLI flows from outside the source checkout; check wheel content, docs, privacy and Git diff. Merge only with passing Windows/Linux PR CI. If all gates pass, publish an accurately scoped v0.4.0 GitHub release and verify the published wheel. **Do not** label the research prototype a security enforcement product or claim task-authorization detection accuracy.

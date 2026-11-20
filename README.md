@@ -8,6 +8,8 @@
 
 Python 3.10+, no runtime dependencies, network access or model API keys required:
 
+Clone the [source repository](https://github.com/AkiyamaKira2003/kira-agent-trace-lab) and run these commands from its root to use the included examples. Alternatively, install the wheel attached to the [v0.4.0 GitHub release](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/releases/tag/v0.4.0) with `python -m pip install ./kira_agent_trace_lab-0.4.0-py3-none-any.whl`; example JSON files are still in the source repository. **This project does not claim a PyPI distribution.**
+
 ```sh
 python -m agent_trace_lab evaluate examples/suite.json
 python -m agent_trace_lab evaluate examples/suite.json --format json
@@ -60,7 +62,7 @@ When importing with a schema-1.1 policy, the resulting suite also uses 1.1 but c
 
 This is a narrow OTLP JSON import, not support for binary protobuf, all exporters, all semantic-convention versions or model-specific logging formats.
 
-## Experimental SWE recorded tool-call import (v0.4.0.dev0 prerelease)
+## Experimental SWE recorded tool-call import (v0.4)
 
 An offline, **experimental** importer reads a single locally saved SWE-agent-style JSON row containing `messages`. It extracts assistant `tool_calls[].function` records only, without executing tools, including the original system prompt, or using the dataset's `resolved` task-success field as an authorization label.
 
@@ -83,7 +85,7 @@ python scripts/audit_hf_preview_revision.py --local-row artifacts/open_swe_v1_sw
 
 `SERVER_ATTESTED_PREVIEW_MATCH` does **not** claim cryptographic provenance of the preview contents. Unlike the offline evaluator/CLI, this explicitly invoked research script requires internet access; it is not part of the installed package.
 
-For an **independent pinned-Parquet action check**, install optional PyArrow 21 into the already ignored `artifacts/` area and execute the read-only, capped 20 MiB ranged-column audit. It verifies the exact importer-relevant fields, not message content, model reasoning or the full original JSON row:
+For an **independent pinned-Parquet action check**, install optional PyArrow 21 into the already ignored `artifacts/` area and execute the read-only, capped 20 MiB ranged-column audit. It verifies the exact importer-relevant fields, not message content, model reasoning or the full original JSON row. This is for source-repository research, not required for normal package use:
 
 ```sh
 python -m pip install --target artifacts/rowproof_deps --no-deps pyarrow==21.0.0
@@ -136,7 +138,7 @@ The small, inspectable engine complements mature evaluation systems, rather than
 
 ```sh
 python -m unittest discover -s tests -v
-python -m compileall -q agent_trace_lab tests
+python -m compileall -q agent_trace_lab scripts tests
 ```
 
 See [backlog / checkpoint](docs/BACKLOG.md). Original code and self-authored fixtures are MIT-licensed. The adapted AgentDrift data records are separately CC BY 4.0 licensed with attribution in the external case study.
