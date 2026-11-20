@@ -112,6 +112,8 @@ The example is **self-authored synthetic data**. Its scoped allowlist models a s
 
 An optional `python -m scripts.audit_agentdojo_import_contrast` research script downloads two *pinned* public AgentDojo run files and two task-definition files, validates SHA-256, and compares a permissive tool allowlist with a calendar-task-only allowlist. In this selected attacked run, the extra `send_email` action passes the permissive policy but is denied by the scoped one. Both runs **abstain** from real-human authorization judgments. This is not a representative attack-detection benchmark.
 
+Counterexample for overrestrictive policies: the opt-in `python -m scripts.audit_agentdojo_email_control` checks a pinned *legitimate* AgentDojo user task requesting an emailed summary and its recorded run. The action targets the task-defined recipient, but a blanket no-send policy denies it. This checks only **simulated tool and recipient scope**, not the correctness of the email content or any genuine human approval. See [the evidence audit](docs/AGENTDOJO_SIMULATED_BOUNDARY.md).
+
 ## Design
 
 An input JSON suite has:
