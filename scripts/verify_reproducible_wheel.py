@@ -18,9 +18,9 @@ import tempfile
 from typing import Any
 
 from agent_trace_lab.schema import SuiteError
-from scripts.verify_installed_wheel import ROOT, wheel_members
+from scripts.verify_installed_wheel import ROOT, source_project_version, wheel_members
 
-EXPECTED_WHEEL_NAME = "kira_agent_trace_lab-0.5.0.dev0-py3-none-any.whl"
+EXPECTED_WHEEL_NAME = f"kira_agent_trace_lab-{source_project_version()}-py3-none-any.whl"
 EPOCH_RE = re.compile(r"[0-9]{9,12}\Z")
 
 

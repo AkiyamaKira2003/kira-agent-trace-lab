@@ -22,10 +22,13 @@ from scripts.verify_installed_wheel import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+VERSION = source_project_version()
+WHEEL_NAME = f"kira_agent_trace_lab-{VERSION}-py3-none-any.whl"
+DIST_INFO_PREFIX = f"kira_agent_trace_lab-{VERSION}.dist-info/"
 
 
 def make_wheel(directory: Path, *, members: list[str] | None = None) -> Path:
-    path = directory / "kira_agent_trace_lab-0.5.0.dev0-py3-none-any.whl"
+    path = directory / WHEEL_NAME
     with zipfile.ZipFile(path, "w") as archive:
         for name in members if members is not None else sorted(REQUIRED_WHEEL_MEMBERS):
             archive.writestr(name, "# harmless synthetic placeholder\n")
@@ -36,11 +39,11 @@ def make_release_metadata_wheel(
     directory: Path, *, changes: dict[str, bytes] | None = None,
     omissions: set[str] | None = None,
 ) -> Path:
-    prefix = "kira_agent_trace_lab-0.5.0.dev0.dist-info/"
+    prefix = DIST_INFO_PREFIX
     header = (
         "Metadata-Version: 2.4\n"
         "Name: kira-agent-trace-lab\n"
-        "Version: 0.5.0.dev0\n"
+        f"Version: {VERSION}\n"
         "License-Expression: MIT\n"
         "License-File: LICENSE\n"
         "Requires-Python: >=3.10\n"
@@ -58,7 +61,7 @@ def make_release_metadata_wheel(
         ),
     }
     payload.update(changes or {})
-    path = directory / "kira_agent_trace_lab-0.5.0.dev0-py3-none-any.whl"
+    path = directory / WHEEL_NAME
     with zipfile.ZipFile(path, "w") as archive:
         for name, value in payload.items():
             if name not in (omissions or set()):
@@ -132,7 +135,7 @@ class InstalledWheelQATests(unittest.TestCase):
 
     def test_malformed_or_nonwheel_file_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
-            bad = Path(directory) / "kira_agent_trace_lab-0.5.0.dev0-py3-none-any.whl"
+            bad = Path(directory) / WHEEL_NAME
             bad.write_bytes(b"not a zip archive")
             with self.assertRaisesRegex(SuiteError, "valid wheel"):
                 wheel_members(bad)
@@ -143,8 +146,8 @@ class InstalledWheelQATests(unittest.TestCase):
     def test_release_metadata_checks_real_distributable_contract(self):
         with tempfile.TemporaryDirectory() as directory:
             path = make_release_metadata_wheel(Path(directory))
-            self.assertEqual(validate_release_metadata(path), "0.5.0.dev0")
-            self.assertEqual(source_project_version(), "0.5.0.dev0")
+            self.assertEqual(validate_release_metadata(path), VERSION)
+            self.assertEqual(source_project_version(), VERSION)
 
     def test_release_metadata_rejects_different_source_version(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -155,7 +158,7 @@ class InstalledWheelQATests(unittest.TestCase):
                     validate_release_metadata(path)
 
     def test_release_metadata_fails_closed_on_omitted_document(self):
-        base = "kira_agent_trace_lab-0.5.0.dev0.dist-info/"
+        base = DIST_INFO_PREFIX
         for missing in ("METADATA", "WHEEL", "entry_points.txt", "licenses/LICENSE"):
             with self.subTest(missing=missing), tempfile.TemporaryDirectory() as directory:
                 path = make_release_metadata_wheel(
@@ -165,7 +168,7 @@ class InstalledWheelQATests(unittest.TestCase):
                     validate_release_metadata(path)
 
     def test_release_metadata_rejects_unverified_distribution_claims(self):
-        base = "kira_agent_trace_lab-0.5.0.dev0.dist-info/"
+        base = DIST_INFO_PREFIX
         for name, fragment in (
             ("wrong_version", "Version: 0.4.0\n"),
             ("missing_repository_url", "Project-URL: Repository, "),
@@ -178,7 +181,7 @@ class InstalledWheelQATests(unittest.TestCase):
                     metadata = archive.read(base + "METADATA").decode("utf-8")
                     data = {key: archive.read(key) for key in archive.namelist()}
                 if name == "wrong_version":
-                    metadata = metadata.replace("Version: 0.5.0.dev0\n", fragment)
+                    metadata = metadata.replace(f"Version: {VERSION}\n", fragment)
                 elif name == "missing_repository_url":
                     metadata = "\n".join(
                         line for line in metadata.split("\n")
@@ -196,7 +199,7 @@ class InstalledWheelQATests(unittest.TestCase):
                     validate_release_metadata(path)
 
     def test_release_metadata_rejects_nonstandard_entrypoint_or_tags(self):
-        base = "kira_agent_trace_lab-0.5.0.dev0.dist-info/"
+        base = DIST_INFO_PREFIX
         for member, value in (
             ("entry_points.txt", b"[console_scripts]\nother = something:else"),
             ("WHEEL", b"Wheel-Version: 1.0\nTag: cp312-win_amd64"),

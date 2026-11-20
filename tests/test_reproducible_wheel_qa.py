@@ -11,7 +11,7 @@ from unittest.mock import patch
 import zipfile
 
 from agent_trace_lab.schema import SuiteError
-from scripts.verify_installed_wheel import REQUIRED_WHEEL_MEMBERS
+from scripts.verify_installed_wheel import REQUIRED_WHEEL_MEMBERS, source_project_version
 from scripts.verify_reproducible_wheel import (
     EXPECTED_WHEEL_NAME, build_twice, compare_wheels,
     get_git_commit_epoch, validate_epoch,
@@ -32,6 +32,12 @@ def synthetic_wheel(folder: Path, *, altered: bool = False,
 
 
 class ReproducibleWheelTests(unittest.TestCase):
+    def test_expected_wheel_filename_tracks_source_metadata(self):
+        self.assertEqual(
+            EXPECTED_WHEEL_NAME,
+            f"kira_agent_trace_lab-{source_project_version()}-py3-none-any.whl",
+        )
+
     def test_stable_synthetic_wheels_match_within_environment(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

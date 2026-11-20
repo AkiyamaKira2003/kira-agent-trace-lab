@@ -18,6 +18,11 @@ Verify the artifact against its attached SHA256SUMS.txt. This **does not**
 replace v0.4.0 as latest stable, establish real-user authorization
 labels or qualify any security-product claims.
 
+Development main after the published v0.5.0.dev0 tag uses the
+**distinct, unreleased 0.5.0.dev1 package version** for new source builds.
+For the exact published research artifact and its SHA-256, use the
+tagged v0.5.0.dev0 release above rather than rebuilding from main.
+
 A source-distribution archive (.tar.gz) is an **installable code-only
 artifact**, not a substitute for cloning the Git repository: it intentionally
 excludes tests that require fixtures, research scripts and docs, adapted
