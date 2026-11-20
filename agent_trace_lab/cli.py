@@ -62,6 +62,10 @@ def main(argv: list[str] | None = None) -> int:
     compare.add_argument("--candidate-policy", type=Path, required=True,
                          help="JSON object containing schema_version and policy only")
     compare.add_argument("--format", choices=("text", "json"), default="text")
+    compare.add_argument(
+        "--redact-case-ids", action="store_true",
+        help="replace case IDs with deterministic per-report ordinals for sharing",
+    )
     importer = subcommands.add_parser("import-otlp", help="convert recorded OTLP JSON tool spans into a suite")
     importer.add_argument("otlp", type=Path, help="saved OTLP/HTTP JSON export")
     importer.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
@@ -95,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "compare-policies":
             report = compare_policies(
                 load_suite(args.suite), load_json_document(args.candidate_policy),
+                redact_case_ids=args.redact_case_ids,
             )
             if args.format == "json":
                 print(json.dumps(report, indent=2, ensure_ascii=False))

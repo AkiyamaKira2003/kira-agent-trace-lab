@@ -47,6 +47,76 @@ class PolicyComparisonTests(unittest.TestCase):
         self.assertNotIn("forward_email", json.dumps(report))
         self.assertNotIn("accuracy", json.dumps(report))
 
+    def test_opt_in_redaction_aliases_ids_but_preserves_decisions(self):
+        self.base["cases"][0]["id"] = "PRIVATE_SYNTHETIC_CASE_98765"
+        self.base["cases"].append(copy.deepcopy(self.base["cases"][0]))
+        self.base["cases"][1]["id"] = "PRIVATE_OTHER_CASE_12345"
+        self.base["cases"][1]["trace"] = []
+        original = copy.deepcopy(self.base)
+        public = compare_policies(self.base, self.candidate, redact_case_ids=True)
+        private = self.compare()
+        self.assertEqual([row["id"] for row in public["cases"]], ["case_0001", "case_0002"])
+        self.assertEqual(public["summary"], private["summary"])
+        self.assertEqual(
+            [(row["baseline"], row["candidate"], row["changed"]) for row in public["cases"]],
+            [(row["baseline"], row["candidate"], row["changed"]) for row in private["cases"]],
+        )
+        self.assertNotIn("PRIVATE_SYNTHETIC_CASE", json.dumps(public))
+        self.assertNotIn("PRIVATE_OTHER_CASE", json.dumps(public))
+        self.assertEqual(self.base, original)
+        self.assertEqual(public, compare_policies(self.base, self.candidate, redact_case_ids=True))
+
+    def test_redaction_mixed_schema_never_exposes_grant_references(self):
+        base = load_suite(ROOT / "examples" / "demo_task_scoped.json")
+        for index, case in enumerate(base["cases"]):
+            case["id"] = f"PRIVATE_CASE_{index + 1}"
+        candidate_source = load_json_document(BASE)
+        candidate = {"schema_version": "1.0", "policy": candidate_source["policy"]}
+        result = compare_policies(base, candidate, redact_case_ids=True)
+        text = json.dumps(result)
+        self.assertEqual(result["summary"]["candidate_ignored_grant_cases"], 3)
+        self.assertEqual(result["cases"][0]["id"], "case_0001")
+        self.assertEqual(result["cases"][4]["id"], "case_0005")
+        self.assertNotIn("PRIVATE_CASE", text)
+        self.assertNotIn("self-authored-fictional-demo-only", text)
+        self.assertNotIn("demo_grant_", text)
+        self.assertNotIn("unrequested@example.invalid", text)
+
+    def test_invalid_baseline_cannot_be_repaired_by_aliasing(self):
+        self.base["cases"][0]["id"] = "INVALID PRIVATE CASE"
+        with self.assertRaises(SuiteError) as error:
+            compare_policies(self.base, self.candidate, redact_case_ids=True)
+        self.assertNotIn("INVALID PRIVATE CASE", str(error.exception))
+
+    def test_cli_redacted_json_and_text_never_print_original_case_ids(self):
+        with tempfile.TemporaryDirectory() as folder:
+            suite = copy.deepcopy(self.base)
+            suite["cases"][0]["id"] = "PRIVATE_SYNTHETIC_CASE_98765"
+            local = Path(folder) / "private_suite.json"
+            local.write_text(json.dumps(suite), encoding="utf-8")
+            before = local.read_bytes()
+            common = [
+                sys.executable, "-m", "agent_trace_lab", "compare-policies",
+                str(local), "--candidate-policy", str(CANDIDATE), "--redact-case-ids",
+            ]
+            for format_args in ([], ["--format", "json"]):
+                with self.subTest(format=format_args):
+                    run = subprocess.run(
+                        [*common, *format_args], cwd=ROOT, text=True,
+                        capture_output=True, timeout=15,
+                    )
+                    self.assertEqual(run.returncode, 0, run.stderr)
+                    self.assertIn("case_0001", run.stdout)
+                    self.assertNotIn("PRIVATE_SYNTHETIC_CASE_98765", run.stdout + run.stderr)
+                    self.assertNotIn("unrequested@example.invalid", run.stdout + run.stderr)
+            self.assertEqual(local.read_bytes(), before)
+            # Backwards compatible local diagnostics retain original case IDs.
+            normal = subprocess.run(
+                common[:-1], cwd=ROOT, text=True, capture_output=True, timeout=15,
+            )
+            self.assertEqual(normal.returncode, 0, normal.stderr)
+            self.assertIn("PRIVATE_SYNTHETIC_CASE_98765", normal.stdout)
+
     def test_same_policy_produces_zero_delta(self):
         proposed = {
             "schema_version": self.base["schema_version"],
