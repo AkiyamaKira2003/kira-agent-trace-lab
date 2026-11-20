@@ -50,6 +50,25 @@ python -m scripts.agentdojo_review_packet --reviews artifacts/reviews_private.js
 
 The returned result is deliberately tagged `PROVISIONAL_ONLY_IDENTITY_AND_SOURCE_CITATIONS_NOT_INDEPENDENTLY_VERIFIED`. It never emits reviewer names, source excerpts, private arguments or review rationales. Failed validation returns a generic error type, not sensitive content.
 
+## ATL-004I — optional exact-byte citation proofs
+
+The v1 review submission above verifies that a source SHA and **citation syntax** were supplied, not that the cited lines actually exist or match the immutable original task code. The follow-up verifier closes that narrower provenance gap without ever publishing task text:
+
+```sh
+# Opt-in pinned source download; prints only digest + source revision, not text:
+python -m scripts.agentdojo_span_provenance --digest-span banking L5-L7
+
+# Private v2 review input with one extra field per review:
+#   "task_source_span_digest": "<64 lower-case hex SHA-256>"
+python -m scripts.agentdojo_span_provenance --reviews artifacts/reviews_v2_private.json
+```
+
+For this opt-in flow use `schema_version: "agentdojo-citation-review-submission-2"`, keep the same `reviewers` and `reviews` fields as v1, and add `task_source_span_digest` to **every** review. The source line selection can include up to four ordered, nonoverlapping ranges (for example `L5-L7,L20`), at most 12 lines in a range and 24 lines total. The hash includes the exact source bytes, line numbers, length and domain separator. Bad/missing line references, oversized or overlapping ranges, changed file hashes and mismatched span digests are rejected.
+
+Validation checks review shape **before** any network request. It then downloads only the cited, immutable and SHA-pinned task-code files (up to 128 KiB + one overflow byte per source), verifies their complete-file hashes and checks the reviewer-provided span digests against exact raw bytes. No task source code is imported or executed. No raw code, private arguments or reviewer rationale is printed or committed.
+
+**This is proof of byte provenance only.** Anyone can compute a hash without reading or understanding the corresponding task. A matching proof does not establish that the words authorize a tool action, that recorded arguments match the intent, that a reviewer is a human, that the two identities differ in reality, or that the review was independent. Therefore even a fully verified set of citation hashes leaves accepted human-review agreement at **zero**, source-span semantic verification **false**, and genuine authorization **abstain**.
+
 ## Remaining gates
 
 **Source-hash checks and packet generation are verified. Actual blinded reviews, reviewer identity evidence, source-span semantics and independent adjudication are not verified.** No grant-level safety rates, precision/recall, or KiraShop portfolio showcase should be published from these packets. Next bounded task: design an authenticated external reviewer/attestation and privacy review workflow, then recruit genuinely distinct reviewers only with consent and sufficient source access.
