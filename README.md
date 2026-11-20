@@ -99,6 +99,19 @@ PYTHONPATH=artifacts/rowproof_deps python -m scripts.audit_hf_pinned_parquet_act
 
 On Windows PowerShell, use `$env:PYTHONPATH = (Resolve-Path artifacts/rowproof_deps).Path` before running `python -m scripts.audit_hf_pinned_parquet_actions --local-row artifacts/open_swe_v1_sweagent_firstrow_private.json`. Both research audit scripts are separate from the dependency-free evaluator; neither forwards the raw row, executes recorded tools or generates authorization ground truth.
 
+## Experimental AgentDojo recorded-run import (development main; not in v0.4.0 release wheel)
+
+The stdlib-only `import-agentdojo` command converts a **locally recorded** AgentDojo run into an offline evaluation suite. It extracts assistant function tool calls with object-valued `args`, validates bounded inputs and call IDs, and ignores model prose, tool outputs and the benchmark's utility/security outcome flags when determining authorization. `--expected` must come from independent task review, not the benchmark's success field.
+
+```sh
+python -m agent_trace_lab import-agentdojo examples/agentdojo_recorded_synthetic.json --policy-suite examples/agentdojo_policy_simulated_scope.json --case-id synthetic_calendar --expected allow --output artifacts/dojo_synthetic_suite.json
+python -m agent_trace_lab evaluate artifacts/dojo_synthetic_suite.json
+```
+
+The example is **self-authored synthetic data**. Its scoped allowlist models a simulated calendar-reading task; it is not a real user-grant system. Both importer and evaluator leave recorded actions unexecuted. Output suites may retain sensitive arguments; never commit raw traces without rights review and redaction.
+
+An optional `python -m scripts.audit_agentdojo_import_contrast` research script downloads two *pinned* public AgentDojo run files and two task-definition files, validates SHA-256, and compares a permissive tool allowlist with a calendar-task-only allowlist. In this selected attacked run, the extra `send_email` action passes the permissive policy but is denied by the scoped one. Both runs **abstain** from real-human authorization judgments. This is not a representative attack-detection benchmark.
+
 ## Design
 
 An input JSON suite has:
@@ -138,7 +151,7 @@ The small, inspectable engine complements mature evaluation systems, rather than
 
 ## Structure and quality
 
-`agent_trace_lab/schema.py` validates input, `engine.py` evaluates events without side effects, `otlp.py` imports OpenTelemetry JSON spans, `swe.py` experimentally imports offline SWE-style tool-call rows, and `cli.py` produces machine-readable reports. `tests` uses standard-library unittest. CI targets Windows/Linux, Python 3.10 and 3.12.
+`agent_trace_lab/schema.py` validates input, `engine.py` evaluates events without side effects, `otlp.py` imports OpenTelemetry JSON spans, `swe.py` experimentally imports offline SWE-style rows, `agentdojo.py` imports recorded AgentDojo tool calls (development main), and `cli.py` produces machine-readable reports. `tests` uses standard-library unittest. CI targets Windows/Linux, Python 3.10 and 3.12.
 
 ```sh
 python -m unittest discover -s tests -v
