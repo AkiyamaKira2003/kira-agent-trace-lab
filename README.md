@@ -60,7 +60,7 @@ When importing with a schema-1.1 policy, the resulting suite also uses 1.1 but c
 
 This is a narrow OTLP JSON import, not support for binary protobuf, all exporters, all semantic-convention versions or model-specific logging formats.
 
-## Experimental SWE recorded tool-call import (unreleased)
+## Experimental SWE recorded tool-call import (v0.4.0.dev0 prerelease)
 
 An offline, **experimental** importer reads a single locally saved SWE-agent-style JSON row containing `messages`. It extracts assistant `tool_calls[].function` records only, without executing tools, including the original system prompt, or using the dataset's `resolved` task-success field as an authorization label.
 
@@ -73,7 +73,15 @@ Both inputs are **self-authored synthetic structural fixtures**, not copied benc
 
 Validation rejects missing/malformed JSON arguments, ambiguous non-assistant calls, unsupported tool-call envelopes, empty traces and excessive lengths. Both existing schema 1.0 and opt-in 1.1 policies work, but the importer never manufactures user-grant evidence. Real argument values can be sensitive; `artifacts/` is ignored by Git. **No raw public-dataset conversations should be committed without careful rights and privacy review.**
 
-Provenance research: [NVIDIA Open-SWE-Traces source audit](docs/RECORDED_TRACE_SOURCE_AUDIT_20261120.md). A sample recorded row was inspected to verify its envelope, but subsequent full raw-data checks encountered HTTP 502 and timeout; **external end-to-end compatibility remains NOT_VERIFIED**. The importer is a format experiment, not a supported production integration or an AI-security performance benchmark.
+Provenance research: [NVIDIA Open-SWE-Traces source audit](docs/RECORDED_TRACE_SOURCE_AUDIT_20261120.md). A complete **recorded benchmark-run** preview row was later imported successfully (48 tool calls, no execution); its bytes matched an independently repeated `/first-rows` response with `X-Revision` equal to the pinned Hub commit. This verifies **external format interoperability and server-reported preview revision**, but **not** independent reconstruction from revision-pinned Parquet, nor real-world authorization accuracy. The importer remains experimental, not a supported production integration or an AI-security benchmark.
+
+To recheck provenance when the private, Git-ignored sample is available, run this optional **research-only** script. It fetches metadata and a bounded public preview; it never publishes raw messages, downloads 200+ MB shards or executes recorded actions:
+
+```sh
+python scripts/audit_hf_preview_revision.py --local-row artifacts/open_swe_v1_sweagent_firstrow_private.json --revision 4fa4c2ae9afc6b397bc50391d43450c79993c138 --expected-sha256 5dd6520877d2b0b95e6e3bfa39f868d36a3429c821f7d768b200a6ca8edebb40
+```
+
+`SERVER_ATTESTED_PREVIEW_MATCH` does **not** claim cryptographic provenance of the preview contents. Unlike the offline evaluator/CLI, this explicitly invoked research script requires internet access; it is not part of the installed package.
 
 ## Design
 
