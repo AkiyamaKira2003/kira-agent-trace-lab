@@ -19,6 +19,21 @@ Exit **0** means all expected case labels matched, **1** means at least one mism
 
 The included synthetic example yields **8/8 labeled matches** with TP=5 and TN=3. **This is a smoke test, not an independently measured agent-safety score.**
 
+## Import OpenTelemetry tool traces (v0.2)
+
+The converter accepts a saved **OTLP/HTTP JSON** export using OpenTelemetry's GenAI execute-tool span attributes: `gen_ai.operation.name=execute_tool`, `gen_ai.tool.name`, and opt-in `gen_ai.tool.call.arguments`. Supported argument formats are JSON-object strings or a limited structured OTLP `kvlistValue`.
+
+```sh
+python -m agent_trace_lab import-otlp examples/otlp_spans.json --policy-suite examples/suite.json --case-id local_trace_01 --expected allow --output artifacts/imported.json
+python -m agent_trace_lab evaluate artifacts/imported.json
+```
+
+The **expected label is supplied by the person running the import**. No ground truth is inferred from the trace. Import refuses missing arguments, invalid data, unrelated trace IDs and missing timestamps. Events within one trace are ordered by `startTimeUnixNano`; simultaneous operations may still be causally unordered. The converter cannot infer which human task those spans belong to.
+
+**Privacy:** Imported suites retain tool argument values, which can contain secrets and PII. The CLI makes no external requests and reports omit argument values, but **never commit imported real-world suites without reviewing/redacting them**. Use `artifacts/` for locally generated examples (ignored by Git).
+
+This is a narrow OTLP JSON import, not support for binary protobuf, all exporters, all semantic-convention versions or model-specific logging formats.
+
 ## Design
 
 An input JSON suite has:
@@ -58,7 +73,7 @@ The small, inspectable engine complements mature evaluation systems, rather than
 
 ## Structure and quality
 
-`agent_trace_lab/schema.py` validates input, `engine.py` evaluates events without side effects, `cli.py` produces machine-readable reports. `tests` uses standard-library unittest. CI targets Windows/Linux, Python 3.10 and 3.12.
+`agent_trace_lab/schema.py` validates input, `engine.py` evaluates events without side effects, `otlp.py` imports OpenTelemetry JSON spans, and `cli.py` produces machine-readable reports. `tests` uses standard-library unittest. CI targets Windows/Linux, Python 3.10 and 3.12.
 
 ```sh
 python -m unittest discover -s tests -v

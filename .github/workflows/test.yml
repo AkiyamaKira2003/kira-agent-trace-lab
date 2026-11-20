@@ -16,11 +16,17 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python-version: ["3.10", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Unit tests
         run: python -m unittest discover -s tests -v
       - name: Sample trace evaluation
         run: python -m agent_trace_lab evaluate examples/suite.json --format json
+      - name: OpenTelemetry import and evaluation
+        run: |
+          python -m agent_trace_lab import-otlp examples/otlp_spans.json --policy-suite examples/suite.json --case-id ci_trace --expected allow --output artifacts/ci_trace.json
+          python -m agent_trace_lab evaluate artifacts/ci_trace.json

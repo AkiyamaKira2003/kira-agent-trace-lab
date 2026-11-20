@@ -8,6 +8,7 @@ Research date **2026-11-20 (Asia/Ho_Chi_Minh)**. Sources below were checked as r
 | [AgentDojo](https://github.com/ethz-spylab/agentdojo) | Dynamic environment for AI-agent attacks and defenses | MIT | Action-level evaluation motivation; this lab has no dynamic attack simulation. |
 | [Promptfoo](https://github.com/promptfoo/promptfoo) | Prompt/agent evaluation and automated red-teaming | MIT | Full-featured alternative; this lab intentionally has a narrower stdlib-only contract. |
 | [OWASP AISVS research](https://github.com/OWASP/AISVS) | AI application security guidance | Verify upstream before reuse | Trust boundaries and least-privilege principles, not proof this tool blocks attacks. |
+| [OpenTelemetry GenAI execute-tool](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/execute-tool.md) | Standard tool-execution spans with optional recorded arguments | Refer to upstream | Import of a restricted OTLP JSON format; arguments are opt-in and can contain sensitive data. |
 
 **Research hypothesis:** A deterministic, inspectable checker of *recorded tool actions* may be useful as a low-cost CI assertion, especially where model-based graders produce variable results. Its limits are deliberate: no LLMs, no callbacks, no network calls, no automatic attacks, no inferred hidden actions.
 
@@ -24,3 +25,5 @@ Research date **2026-11-20 (Asia/Ho_Chi_Minh)**. Sources below were checked as r
 Priority uncertainty: the evaluator's utility depends on ingesting authentic real-world traces and evaluating independently labeled behavior. If a mature framework already solves that exact use case more economically, contribute upstream rather than maintaining an unnecessary standalone project.
 
 **Follow-up:** research a stable trace schema, build a read-only adapter, use independently labeled benign and harmful cases, measure false positives/negatives, then compare results against existing frameworks. No external licenses are inherited by mere research links.
+
+OpenTelemetry was chosen for the first adapter because its documented attributes are framework-neutral. The resulting converter handles one trace ID at a time and rejects missing arguments or ambiguous ordering metadata rather than guessing; tests only use synthetic spans until a real, consented dataset is available.

@@ -1,0 +1,122 @@
+from __future__ import annotations
+
+import copy
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+from agent_trace_lab import SuiteError, evaluate_suite, load_suite
+from agent_trace_lab.otlp import import_otlp
+from agent_trace_lab.schema import load_json_document
+
+ROOT = Path(__file__).resolve().parents[1]
+POLICY = ROOT / "examples" / "suite.json"
+TRACE = ROOT / "examples" / "otlp_spans.json"
+
+
+class OtlpTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.export = load_json_document(TRACE)
+        self.policy = load_suite(POLICY)["policy"]
+
+    def _convert(self, export=None, *, expected="allow"):
+        return import_otlp(
+            self.export if export is None else export,
+            policy=self.policy,
+            case_id="recorded_1",
+            expected=expected,
+        )
+
+    def test_import_preserves_order_and_is_reproducible(self) -> None:
+        suite = self._convert()
+        self.assertEqual([x["tool"] for x in suite["cases"][0]["trace"]], ["files.read", "docs.search"])
+        self.assertEqual(suite, self._convert())
+        self.assertEqual(evaluate_suite(suite)["summary"]["matched"], 1)
+
+    def test_human_label_is_not_inferred(self) -> None:
+        suite = self._convert(expected="deny")
+        result = evaluate_suite(suite)["cases"][0]
+        self.assertEqual((result["actual"], result["matched"]), ("allow", False))
+
+    def test_no_tool_spans_is_not_treated_as_clean(self) -> None:
+        self.export["resourceSpans"][0]["scopeSpans"][0]["spans"] = [{"name": "unrelated"}]
+        with self.assertRaisesRegex(SuiteError, "no execute_tool"):
+            self._convert()
+
+    def test_import_orders_by_start_time_not_exporter_position(self) -> None:
+        spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        spans[1], spans[2] = spans[2], spans[1]
+        self.assertEqual(self._convert()["cases"][0]["trace"][0]["tool"], "files.read")
+
+    def test_multiple_traces_are_not_combined(self) -> None:
+        spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        spans[2]["traceId"] = "20000000000000000000000000000002"
+        with self.assertRaisesRegex(SuiteError, "multiple traceIds"):
+            self._convert()
+
+    def test_missing_span_ordering_is_rejected(self) -> None:
+        spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        del spans[1]["startTimeUnixNano"]
+        with self.assertRaisesRegex(SuiteError, "startTimeUnixNano"):
+            self._convert()
+
+    def test_missing_opt_in_arguments_fails_closed(self) -> None:
+        attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
+        attributes.pop()
+        with self.assertRaisesRegex(SuiteError, "not recorded"):
+            self._convert()
+
+    def test_malformed_json_arguments_fails_closed(self) -> None:
+        attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
+        attributes[2]["value"]["stringValue"] = "{invalid"
+        with self.assertRaisesRegex(SuiteError, "valid JSON"):
+            self._convert()
+
+    def test_duplicate_instrumentation_attributes_rejected(self) -> None:
+        attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
+        attributes.append(copy.deepcopy(attributes[1]))
+        with self.assertRaisesRegex(SuiteError, "duplicate"):
+            self._convert()
+
+    def test_duplicate_json_argument_keys_rejected(self) -> None:
+        attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
+        attributes[2]["value"]["stringValue"] = '{"path":"/workspace/docs/a","path":"/workspace/docs/b"}'
+        with self.assertRaisesRegex(SuiteError, "duplicate"):
+            self._convert()
+
+    def test_unsupported_otel_anyvalue_rejected(self) -> None:
+        attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
+        attributes[2]["value"] = {"bytesValue": "Zm9v"}
+        with self.assertRaisesRegex(SuiteError, "unsupported"):
+            self._convert()
+
+    def test_invalid_trace_path_in_integrated_report(self) -> None:
+        attrs = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
+        attrs[2]["value"]["stringValue"] = '{"path":"/workspace/docs/../private"}'
+        report = evaluate_suite(self._convert())
+        self.assertEqual(report["cases"][0]["actual"], "deny")
+        self.assertEqual(report["cases"][0]["violations"][0]["code"], "PATH_INVALID")
+
+    def test_cli_import_uses_explicit_label_and_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "imported.json"
+            cmd = [
+                sys.executable, "-m", "agent_trace_lab", "import-otlp", str(TRACE),
+                "--policy-suite", str(POLICY), "--case-id", "ci_case",
+                "--expected", "allow", "--output", str(output),
+            ]
+            proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertIn("user-provided", proc.stdout)
+            self.assertEqual(evaluate_suite(load_suite(output))["summary"]["matched"], 1)
+            overwrite = cmd.copy()
+            overwrite[-1] = str(TRACE)
+            bad = subprocess.run(overwrite, cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(bad.returncode, 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

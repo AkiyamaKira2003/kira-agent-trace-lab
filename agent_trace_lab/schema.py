@@ -131,7 +131,8 @@ def validate_suite(suite: Any) -> dict[str, Any]:
     return suite
 
 
-def load_suite(path: str | Path) -> dict[str, Any]:
+def load_json_document(path: str | Path) -> Any:
+    """Read bounded, strict JSON without accepting JavaScript numeric extensions."""
     path = Path(path)
     try:
         with path.open("rb") as stream:
@@ -143,6 +144,10 @@ def load_suite(path: str | Path) -> dict[str, Any]:
             object_pairs_hook=_object_no_duplicates,
             parse_constant=_reject_non_json_number,
         )
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError) as exc:
         raise SuiteError(f"cannot read valid UTF-8 JSON suite: {exc}") from exc
-    return validate_suite(value)
+    return value
+
+
+def load_suite(path: str | Path) -> dict[str, Any]:
+    return validate_suite(load_json_document(path))
