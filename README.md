@@ -35,8 +35,17 @@ checkout, not the source archive. See the
 python -m agent_trace_lab evaluate examples/suite.json
 python -m agent_trace_lab evaluate examples/suite.json --format json
 python -m agent_trace_lab evaluate examples/suite.json --format json --output artifacts/report.json
+python -m agent_trace_lab evaluate examples/suite.json --summary-only --format json
 python -m unittest discover -s tests -v
 ```
+
+For sharing a **counts-only** evaluation without case IDs, tool names,
+argument values or individual violations, use `--summary-only` with
+`--format json` or `--format text`. The JSON report declares
+the labels **caller-supplied and not independently verified**, and
+does not include accuracy, precision or recall estimates. A mismatch
+still returns exit **1**. This does not anonymize original input
+files or prove real-world agent security effectiveness.
 
 When writing an evaluation report, **--output only creates a new
 file**. If it already exists, the CLI returns exit **2** without

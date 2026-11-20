@@ -26,6 +26,10 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Sample trace evaluation
         run: python -m agent_trace_lab evaluate examples/suite.json --format json
+      - name: Aggregate-only caller-label summary without trace details
+        run: |
+          python -m agent_trace_lab evaluate examples/suite.json --summary-only --format json
+          python -m agent_trace_lab evaluate examples/suite.json --summary-only --format text
       - name: Explicit task authorization suite
         run: python -m agent_trace_lab evaluate examples/task_grants.json --format json
       - name: Compare identical recorded cases under two policies

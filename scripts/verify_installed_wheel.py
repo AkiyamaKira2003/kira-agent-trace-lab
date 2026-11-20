@@ -364,6 +364,40 @@ def run(wheel: Path) -> dict[str, Any]:
             [str(launcher), "evaluate", "demo_task_scoped.json", "--format", "json"],
             work, env))
         validate_console_equivalence(permissive, scoped, console_permissive, console_scoped)
+        # Aggregate-only reports must not include identifying case/tool data
+        # or mislabel caller-authored fixtures as independently verified.
+        aggregate_args = [
+            "evaluate", "suite.json", "--summary-only", "--format", "json",
+        ]
+        module_aggregate = json.loads(_execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab", *aggregate_args],
+            work, env,
+        ))
+        console_aggregate = json.loads(_execute(
+            [str(launcher), *aggregate_args], work, env,
+        ))
+        aggregate_text = _execute(
+            [str(launcher), "evaluate", "suite.json", "--summary-only",
+             "--format", "text"], work, env,
+        )
+        if (module_aggregate != console_aggregate
+                or module_aggregate["label_basis"] != "caller_supplied_not_independently_verified"
+                or module_aggregate["verified_real_world_security_metrics"] is not False
+                or module_aggregate["summary"]["total_cases"] != 8
+                or module_aggregate["summary"]["matched_fixture_labels"] != 8
+                or any(name in module_aggregate for name in ("cases", "policy"))
+                or "accuracy" in json.dumps(module_aggregate)
+                or "No independently verified real-world security metrics." not in aggregate_text
+                or "PASS " in aggregate_text):
+            raise SuiteError("installed aggregate-only output leaked details or false provenance")
+        mismatch_aggregate = json.loads(_execute(
+            [str(launcher), "evaluate", "demo_permissive.json",
+             "--summary-only", "--format", "json"],
+            work, env, expected_exit=1,
+        ))
+        if (mismatch_aggregate["summary"]["matched_fixture_labels"] != 0
+                or "unrequested_forward" in json.dumps(mismatch_aggregate)):
+            raise SuiteError("installed aggregate mismatch report failed or leaked case data")
         # Check real installed module and launcher output publication, not
         # just source-unit mocks. The fixture label mismatch must still exit 1.
         report_args = [
@@ -480,6 +514,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_import_output_no_clobber_verified": True,
         "installed_evaluation_output_no_clobber_verified": True,
         "installed_evaluation_mismatch_exit_and_overwrite_verified": True,
+        "installed_aggregate_only_report_verified": True,
         "installed_import_explicit_overwrite_verified": True,
         "installed_import_formats_verified": len(import_cases),
         "isolated_site_import_verified": True,

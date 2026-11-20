@@ -2,6 +2,10 @@
 
 ## Unreleased (0.5.0.dev1 development; not in published v0.5.0.dev0)
 
+- ATL-004AE: opt-in evaluate --summary-only JSON/text for deterministic
+  aggregate caller-label counts without individual case, tool or
+  argument values; explicit unverified provenance and no real-world
+  security-accuracy claim. Preserve default output and mismatch exit 1.
 - ATL-004AD: fix destructive evaluate --output report writes; add default
   no-clobber, explicit --overwrite, atomic complete-file publication,
   symlink/input protection and focused fault-injection plus installed CLI
