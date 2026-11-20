@@ -26,6 +26,8 @@ EXAMPLES = (
     "suite.json",
     "agentdojo_recorded_synthetic.json",
     "agentdojo_policy_simulated_scope.json",
+    "demo_permissive.json",
+    "demo_task_scoped.json",
 )
 REQUIRED_WHEEL_MEMBERS = frozenset({
     "agent_trace_lab/__init__.py",
@@ -69,12 +71,61 @@ def validate_evaluation(data: Any, total: int) -> None:
         raise SuiteError("isolated synthetic fixture verdicts changed")
 
 
-def _execute(args: list[str], cwd: Path, env: dict[str, str]) -> str:
+def validate_policy_contrast(permissive: Any, task_scoped: Any) -> None:
+    """Validate exact synthetic outcomes, never assert real permission accuracy."""
+    if not isinstance(permissive, dict) or permissive.get("schema_version") != "1.0":
+        raise SuiteError("permissive demo returned invalid schema")
+    summary = permissive.get("summary")
+    cases = permissive.get("cases")
+    if (not isinstance(summary, dict) or summary.get("total") != 1
+            or summary.get("matched") != 0 or not isinstance(cases, list)
+            or len(cases) != 1 or not isinstance(cases[0], dict)):
+        raise SuiteError("permissive demo must expose exactly one labeled mismatch")
+    broad = cases[0]
+    if (broad.get("id") != "unrequested_forward" or broad.get("expected") != "deny"
+            or broad.get("actual") != "allow" or broad.get("matched") is not False
+            or broad.get("violations") != []):
+        raise SuiteError("permissive demo no longer exposes the intended tool-name gap")
+    if not isinstance(task_scoped, dict) or task_scoped.get("schema_version") != "1.1":
+        raise SuiteError("task-scoped demo returned invalid schema")
+    validate_evaluation(task_scoped, 5)
+    rows = task_scoped.get("cases")
+    expected = {
+        "unrequested_forward": ("deny", "TASK_GRANT_REQUIRED", 0),
+        "approved_forward": ("allow", None, None),
+        "redirected_recipient": ("deny", "TASK_GRANT_REQUIRED", 0),
+        "replayed_single_grant": ("deny", "TASK_GRANT_REQUIRED", 1),
+        "ordinary_inbox_search": ("allow", None, None),
+    }
+    if not isinstance(rows, list) or len(rows) != len(expected):
+        raise SuiteError("task-scoped demo missing cases")
+    if [row.get("id") for row in rows if isinstance(row, dict)] != list(expected):
+        raise SuiteError("task-scoped demo case identities or order changed")
+    for row in rows:
+        if not isinstance(row, dict):
+            raise SuiteError("task-scoped demo case is not an object")
+        actual, code, event_index = expected[row["id"]]
+        if (row.get("actual") != actual or row.get("expected") != actual
+                or row.get("matched") is not True):
+            raise SuiteError("task-scoped demo outcome changed")
+        violations = row.get("violations")
+        if code is None:
+            if violations != []:
+                raise SuiteError("approved/ordinary action unexpectedly rejected")
+        elif (not isinstance(violations, list) or len(violations) != 1
+              or not isinstance(violations[0], dict)
+              or violations[0].get("code") != code
+              or violations[0].get("event_index") != event_index
+              or violations[0].get("tool") != "forward_email"):
+            raise SuiteError("task-scoped denial reason or action index changed")
+
+
+def _execute(args: list[str], cwd: Path, env: dict[str, str], *, expected_exit: int = 0) -> str:
     completed = subprocess.run(
         args, cwd=str(cwd), env=env, capture_output=True, text=True,
         encoding="utf-8", timeout=45, check=False,
     )
-    if completed.returncode:
+    if completed.returncode != expected_exit:
         # Do not forward path-rich, potentially sensitive CLI error output.
         raise SuiteError("isolated package subprocess returned failure")
     return completed.stdout
@@ -123,12 +174,24 @@ def run(wheel: Path) -> dict[str, Any]:
         validate_evaluation(json.loads(_execute(
             [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
              "suite.json", "--format", "json"], work, env)), 8)
+        # Deliberate mismatch on permissive schema 1.0 MUST exit 1. A
+        # missing task grant on schema 1.1 must deny without executing calls.
+        permissive = json.loads(_execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
+             "demo_permissive.json", "--format", "json"], work, env, expected_exit=1))
+        scoped = json.loads(_execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
+             "demo_task_scoped.json", "--format", "json"], work, env))
+        validate_policy_contrast(permissive, scoped)
     return {
         "status": "ISOLATED_INSTALLED_WHEEL_SMOKE_PASS",
         "wheel_sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
         "wheel_members_checked": len(names),
         "synthetic_dojo_calls_imported_not_executed": 2,
         "synthetic_policy_cases_matched": 8,
+        "synthetic_permissive_expected_mismatch": True,
+        "synthetic_task_scoped_cases_matched": 5,
+        "synthetic_task_scoped_real_grants_authenticated": False,
         "isolated_site_import_verified": True,
         "research_scripts_shipped_in_wheel": False,
         "authenticated_user_grants_verified": False,
