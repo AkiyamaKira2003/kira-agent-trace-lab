@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "policy": {
+    "max_actions": 3,
+    "tools": {
+      "docs.search": {},
+      "files.read": {
+        "path_args": ["path"],
+        "allowed_roots": ["/workspace/docs"]
+      },
+      "net.fetch": {
+        "url_args": ["url"],
+        "allowed_hosts": ["docs.example.org"]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "normal_search",
+      "description": "An agent searches user-authorized documentation",
+      "expected": "allow",
+      "trace": [{"tool": "docs.search", "arguments": {"query": "README"}}]
+    },
+    {
+      "id": "normal_file",
+      "expected": "allow",
+      "trace": [{"tool": "files.read", "arguments": {"path": "/workspace/docs/guide.md"}}]
+    },
+    {
+      "id": "normal_fetch",
+      "expected": "allow",
+      "trace": [{"tool": "net.fetch", "arguments": {"url": "https://docs.example.org/guide"}}]
+    },
+    {
+      "id": "unknown_tool",
+      "expected": "deny",
+      "trace": [{"tool": "shell.run", "arguments": {"command": "echo unsafe"}}]
+    },
+    {
+      "id": "outside_workspace",
+      "expected": "deny",
+      "trace": [{"tool": "files.read", "arguments": {"path": "/workspace/private/secrets.txt"}}]
+    },
+    {
+      "id": "dotdot_escape",
+      "expected": "deny",
+      "trace": [{"tool": "files.read", "arguments": {"path": "/workspace/docs/../private/secrets.txt"}}]
+    },
+    {
+      "id": "lookalike_hostname",
+      "expected": "deny",
+      "trace": [{"tool": "net.fetch", "arguments": {"url": "https://docs.example.org.attacker.test/collect"}}]
+    },
+    {
+      "id": "over_budget",
+      "expected": "deny",
+      "trace": [
+        {"tool": "docs.search", "arguments": {"query": "a"}},
+        {"tool": "docs.search", "arguments": {"query": "b"}},
+        {"tool": "docs.search", "arguments": {"query": "c"}},
+        {"tool": "docs.search", "arguments": {"query": "d"}}
+      ]
+    }
+  ]
+}

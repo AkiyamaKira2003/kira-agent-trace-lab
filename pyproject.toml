@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kira-agent-trace-lab"
+version = "0.1.0"
+description = "Deterministic, offline policy evaluation of AI-agent tool-use traces"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Akiyama Kira" }]
+dependencies = []
+
+[project.scripts]
+agent-trace-lab = "agent_trace_lab.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent_trace_lab*"]
