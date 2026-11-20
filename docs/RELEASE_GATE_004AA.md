@@ -55,3 +55,34 @@ project VERIFIED COMPLETE.
 The final source SHA, release assets/digests, published release URL
 and any blockers belong in the existing canonical docs/BACKLOG.md
 checkpoint, never in a duplicate campaign state file.
+
+## Published research-only prerelease readback — ATL-004AB
+
+The conditional preflight was fulfilled for the exact tagged source
+commit **e590a177aaa0faafb9493181b3b62c9e989cf571**, with
+[final merged-main CI 44813557201](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/actions/runs/44813557201)
+**4/4 PASS**. An annotated remote tag v0.5.0.dev0 peels to that
+commit. The release is visible at
+[v0.5.0.dev0](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/releases/tag/v0.5.0.dev0):
+**draft=false, prerelease=true**. GitHub's latest-stable endpoint
+continues to return **v0.4.0**.
+
+| Uploaded asset | Bytes | SHA-256 verified against GitHub and download |
+| --- | ---: | --- |
+| kira_agent_trace_lab-0.5.0.dev0-py3-none-any.whl | 29184 | 4a831b863f634842e285ac38bdd738de44e626e64224f3a3b61c8aaf5d94bd71 |
+| kira_agent_trace_lab-0.5.0.dev0.tar.gz | 35362 | 51b4fb23fb1fddec7b02c725ec194da3c1dfe6b8c542c08a0623b3c81c961daa |
+| SHA256SUMS.txt | 220 | 1c482a7a929eaf76d653811f4cca95f15b4fec448f1de5decd88cf395716fd4e |
+
+GitHub draft release bytes were **downloaded again** and compared
+byte-for-byte with KIRAA's pinned-tag staging files before publication.
+The attached SHA256SUMS.txt also independently rehashed and matched
+the downloaded wheel and tar.gz. Source archive inventory, rebuilt
+wheel smoke, installed console/module parity across four importers
+and within-runner deterministic wheel check all passed for the
+tag source. The checksum list is an integrity check, **not** a
+cryptographic publisher identity signature.
+
+**Final release decision:** GO executed **only** for a research
+prerelease. Qualified product/stable v0.5 release, independently
+authenticated grants, external safety effectiveness statistics
+and KiraShop security showcase remain **HOLD**.

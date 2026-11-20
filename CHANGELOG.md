@@ -1,8 +1,8 @@
 # Changelog
 
-## v0.5.0.dev0 — research-only prerelease candidate (not stable v0.5.0)
+## v0.5.0.dev0 — research-only prerelease published 2026-11-21 (not stable v0.5.0)
 
-This version is an explicitly limited research prerelease candidate:
+This version is an explicitly limited research prerelease:
 not an AI-agent runtime defense, authorization service, or independently
 validated prompt-injection detector. Synthetic fixtures and recorded
 policy decisions do not imply verified human approval or protection rates.
