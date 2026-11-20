@@ -126,6 +126,8 @@ ATL-004J adds a [source-pinned task-intent feasibility matrix](docs/AGENTDOJO_TA
 
 ATL-004K adds an opt-in [privacy-limited argument-shape audit](docs/AGENTDOJO_ARGUMENT_SHAPE_AUDIT.md). The `python -m scripts.audit_agentdojo_argument_shapes --check-upstream` command checks 20 SHA-pinned recorded runs and publishes **only safe top-level argument field names and JSON types** for 48 actions (four unsafe field-name occurrences redacted). No actual target, recipient, amount or message content is exposed; neither these shapes nor the benchmark's tool references prove authorization.
 
+ATL-004L adds an [isolated installed-wheel smoke gate](docs/ISOLATED_WHEEL_QA.md), verifying that the experimental `0.5.0.dev0` CLI can import and evaluate synthetic AgentDojo runs outside the checkout. This checks installability and package boundaries, **not** independent authorization accuracy. The source-only research audit scripts are intentionally **not** part of the installed wheel.
+
 ## Design
 
 An input JSON suite has:
