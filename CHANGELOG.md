@@ -2,6 +2,7 @@
 
 ## Unreleased (0.5.0.dev0 development; not in v0.4.0 wheel)
 
+- ATL-004W: independently smoke-test the installed module and console launcher on all three trace import formats for default no-clobber exit 2, explicit --overwrite, exact on-disk output integrity and no unrelated or temporary file changes.
 - ATL-004V: allow only CRLF/LF line-ending equivalence when comparing a verified source archive to a Git checkout; keep content drift, malformed carriage returns and private-path rejection fail-closed.
 - ATL-004U: make the source-distribution archive minimal and MIT-only, excluding tests that cannot run without repository fixtures and source-only research material; add fail-closed tar inventory, license, source-bytes, metadata, privacy and installability CI checks with six new tests.
 - ATL-004T: add repository/documentation/issue links to wheel project metadata and fail-closed release metadata verification in isolated wheel smoke; record a source-linked v0.5 research release-gate matrix with explicit authorization, representative benchmark and qualified showcase HOLD statuses.

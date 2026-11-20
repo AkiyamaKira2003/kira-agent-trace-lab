@@ -27,6 +27,9 @@ ROOT = Path(__file__).resolve().parents[1]
 WHEEL_MAX_SIZE = 2 * 1024 * 1024
 EXAMPLES = (
     "suite.json",
+    "otlp_spans.json",
+    "swe_recorded_row_synthetic.json",
+    "swe_structural_policy.json",
     "agentdojo_recorded_synthetic.json",
     "agentdojo_policy_simulated_scope.json",
     "demo_permissive.json",
@@ -237,6 +240,31 @@ def verify_installed_diagnostic(args: list[str], cwd: Path,
         raise SuiteError("installed malformed-input diagnostic redaction failed")
 
 
+def validate_import_output_contract(before: bytes, after_block: bytes,
+                                    after_explicit: bytes, old_id: str,
+                                    new_id: str) -> None:
+    """Check the installed CLI preserved existing bytes before opt-in replacement."""
+    if before != after_block:
+        raise SuiteError("installed importer silently replaced an existing file")
+    if after_explicit == before or after_explicit == after_block:
+        raise SuiteError("installed importer explicit overwrite did not replace output")
+    try:
+        first = json.loads(before)
+        final = json.loads(after_explicit)
+    except (UnicodeError, ValueError) as exc:
+        raise SuiteError("installed importer output was not valid JSON") from exc
+    original_cases = first.get("cases") if isinstance(first, dict) else None
+    updated_cases = final.get("cases") if isinstance(final, dict) else None
+    if (not isinstance(original_cases, list) or not isinstance(updated_cases, list)
+            or len(original_cases) != 1 or len(updated_cases) != 1
+            or not isinstance(original_cases[0], dict)
+            or not isinstance(updated_cases[0], dict)
+            or original_cases[0].get("id") != old_id
+            or updated_cases[0].get("id") != new_id
+            or original_cases[0].get("trace") != updated_cases[0].get("trace")):
+        raise SuiteError("installed importer output contents changed beyond the case ID")
+
+
 def run(wheel: Path) -> dict[str, Any]:
     wheel = wheel.resolve()
     names = wheel_members(wheel)
@@ -290,6 +318,41 @@ def run(wheel: Path) -> dict[str, Any]:
             [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
              "demo_task_scoped.json", "--format", "json"], work, env))
         launcher = installed_console_path(site, os.name)
+        # Test ALL three actual installed import commands, independently of
+        # source-checkout imports. Two no-clobber invocations must preserve
+        # the exact bytes and an explicit overwrite must change only case_id.
+        import_cases = (
+            ("otlp", "otlp_spans.json", "suite.json"),
+            ("swe", "swe_recorded_row_synthetic.json", "swe_structural_policy.json"),
+            ("agentdojo", "agentdojo_recorded_synthetic.json",
+             "agentdojo_policy_simulated_scope.json"),
+        )
+        untouched = work / "unrelated_private_sentinel.txt"
+        sentinel = b"UNRELATED_SYNTHETIC_PRIVATE_FILE_DO_NOT_REPLACE"
+        untouched.write_bytes(sentinel)
+        for kind, recorded, policy in import_cases:
+            output = f"installed_{kind}.json"
+            source_id = f"installed_{kind}_original"
+            updated_id = f"installed_{kind}_updated"
+            common = [
+                f"import-{kind}", recorded, "--policy-suite", policy,
+                "--case-id", source_id, "--expected", "allow", "--output", output,
+            ]
+            module = [sys.executable, "-S", "-m", "agent_trace_lab"]
+            _execute([*module, *common], work, env)
+            original = (work / output).read_bytes()
+            _execute([*module, *common], work, env, expected_exit=2)
+            _execute([str(launcher), *common], work, env, expected_exit=2)
+            blocked = (work / output).read_bytes()
+            updated = common.copy()
+            updated[updated.index(source_id)] = updated_id
+            _execute([str(launcher), *updated, "--overwrite"], work, env)
+            validate_import_output_contract(
+                original, blocked, (work / output).read_bytes(), source_id, updated_id,
+            )
+            if (untouched.read_bytes() != sentinel
+                    or list(work.glob(".agent-trace-import-*.tmp"))):
+                raise SuiteError("installed importer modified unrelated data or left temp files")
         console_permissive = json.loads(_execute(
             [str(launcher), "evaluate", "demo_permissive.json", "--format", "json"],
             work, env, expected_exit=1))
@@ -327,6 +390,9 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_console_launcher_verified": True,
         "installed_console_matches_module_results": True,
         "installed_schema_diagnostics_redacted": True,
+        "installed_import_output_no_clobber_verified": True,
+        "installed_import_explicit_overwrite_verified": True,
+        "installed_import_formats_verified": len(import_cases),
         "isolated_site_import_verified": True,
         "research_scripts_shipped_in_wheel": False,
         "authenticated_user_grants_verified": False,
