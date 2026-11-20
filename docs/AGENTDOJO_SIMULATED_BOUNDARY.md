@@ -58,3 +58,23 @@ Reproduce (requires source checkout and a one-time opt-in network read):
     python -m unittest discover -s tests -q
 
 No recorded tool is executed, no raw arguments or messages are printed, and no selected-case outcome is presented as a population-level security rate.
+
+## ATL-004E — legitimate email-sending tool/recipient counterexample
+
+The original publisher's pinned [UserTask33 definition](https://github.com/ethz-spylab/agentdojo/blob/089ed468cf3ed0322acc66b0211f26d9d90dbf60/src/agentdojo/default_suites/v1/workspace/user_tasks.py) explicitly requests a client-facing **email summary** and includes a reference send-email action. Its public [no-injection recorded run](https://github.com/ethz-spylab/agentdojo/blob/089ed468cf3ed0322acc66b0211f26d9d90dbf60/runs/gpt-4o-2024-05-13/workspace/user_task_33/none/none.json) calls search_files_by_filename followed by send_email. The recorded recipient matches the recipient specified in the pinned task source.
+
+The [metadata-only manifest](agentdojo_email_control.json) retains the source hashes without the address, email body, prompt, or private conversation. The [bounded public-source verifier](../scripts/audit_agentdojo_email_control.py) checks the two SHA-256 hashes, the task's explicitly requested tool, the recipient match and the observed call order. It does **not** execute email sending or reproduce the original messages.
+
+| Explicit simulated policy | Observed result | Interpretation |
+| --- | --- | --- |
+| File-search allowed; send_email forbidden | **deny**, TOOL_NOT_ALLOWED | False rejection **relative to the simulated tool/recipient scope** |
+| File-search and send_email allowed | **allow** | Tool-name compatibility only, NOT comprehensive content authorization |
+
+The publisher's run has utility=false; this does not make sending an email intrinsically unauthorized, and it does not prove that the email was correct. We **do not assert** the email subject/body, full task completion, actual human consent or a production false-positive rate. The exact intended recipient matched; that is the narrow verified claim.
+
+Reproduce from a source checkout (opt-in network, no local raw trace persistence):
+
+    python -m scripts.audit_agentdojo_email_control
+    python -m unittest discover -s tests -q
+
+**Remaining:** Real-user authorization evidence remains unavailable. These selected cases strengthen the limits/trade-offs analysis but cannot support population security statistics. NEXT_ACTION ATL-004F: document an explicit, source-pinned sample-selection protocol and measured scenario class balance, still separating simulated task labels from authenticated grants.

@@ -5,6 +5,7 @@
 - Add an offline, bounded single-run AgentDojo recorded tool-call importer and CLI.
 - Add synthetic fixtures, negative tests and CI smoke; old schema 1.0/1.1 and existing importers remain compatible.
 - Independently import two pinned AgentDojo benchmark runs and compare a permissive allowlist to a simulated-calendar-task allowlist. The selected injected run contains an out-of-scope email action that the permissive allowlist accepts. These are synthetic-scenario contrasts, **not** real-user authorization accuracy metrics.
+- Add a complementary pinned AgentDojo user-task counterexample: sending a summary email to the simulated task's designated recipient is within **tool/recipient** scope but rejected by a blanket no-send policy. The benchmark utility flag is false and content correctness/real-user consent are explicitly not established.
 
 ## v0.4.0 — 2026-11-20
 
