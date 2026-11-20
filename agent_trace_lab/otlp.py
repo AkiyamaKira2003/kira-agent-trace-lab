@@ -46,13 +46,17 @@ def _otlp_value(value: Any, location: str, depth: int = 0) -> Any:
     if kind == "kvlistValue" and isinstance(payload, dict):
         items = _require_list(payload.get("values"), f"{location}.kvlistValue", 100)
         result: dict[str, Any] = {}
-        for item in items:
+        for index, item in enumerate(items):
             if not isinstance(item, dict) or set(item) != {"key", "value"}:
                 raise SuiteError(f"{location}: malformed kvlist entry")
             key = item["key"]
             if not isinstance(key, str) or not key or key in result:
                 raise SuiteError(f"{location}: invalid or duplicate key")
-            result[key] = _otlp_value(item["value"], f"{location}.{key}", depth + 1)
+            # Keys are attacker-controlled trace data and can contain secrets:
+            # keep them in the result, never interpolate into error locations.
+            result[key] = _otlp_value(
+                item["value"], f"{location}.kvlistValue[{index}]", depth + 1
+            )
         return result
     raise SuiteError(f"{location}: unsupported OTLP AnyValue kind")
 

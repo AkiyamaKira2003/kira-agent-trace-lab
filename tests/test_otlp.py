@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 from agent_trace_lab import SuiteError, evaluate_suite, load_suite
-from agent_trace_lab.otlp import import_otlp
+from agent_trace_lab.otlp import _otlp_value, import_otlp
 from agent_trace_lab.schema import load_json_document
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -92,6 +92,46 @@ class OtlpTests(unittest.TestCase):
         attributes[2]["value"] = {"bytesValue": "Zm9v"}
         with self.assertRaisesRegex(SuiteError, "unsupported"):
             self._convert()
+
+    def test_nested_kvlist_errors_do_not_echo_untrusted_property_names(self) -> None:
+        marker = "SYNTHETIC_PRIVATE_KEY_DO_NOT_LOG_123"
+        for bad_value in ({"bytesValue": "Zm9v"}, {"intValue": "invalid_integer"}):
+            with self.subTest(kind=next(iter(bad_value))):
+                value = {"kvlistValue": {"values": [
+                    {"key": marker, "value": bad_value},
+                ]}}
+                with self.assertRaises(SuiteError) as caught:
+                    _otlp_value(value, "spans[0].gen_ai.tool.call.arguments")
+                self.assertIn("kvlistValue[0]", str(caught.exception))
+                self.assertNotIn(marker, str(caught.exception))
+
+    def test_nested_kvlist_keeps_original_argument_keys_on_valid_input(self) -> None:
+        marker = "SYNTHETIC_PRIVATE_KEY_DO_NOT_LOG_123"
+        value = {"kvlistValue": {"values": [
+            {"key": marker, "value": {"stringValue": "synthetic_value"}},
+        ]}}
+        self.assertEqual(_otlp_value(value, "example"), {marker: "synthetic_value"})
+
+    def test_cli_otlp_invalid_nested_key_is_not_logged(self) -> None:
+        marker = "SYNTHETIC_PRIVATE_KEY_DO_NOT_LOG_123"
+        attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
+        attributes[2]["value"] = {"kvlistValue": {"values": [
+            {"key": marker, "value": {"bytesValue": "Zm9v"}},
+        ]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = Path(tmp) / "bad_otlp.json"
+            raw.write_text(json.dumps(self.export), encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable, "-m", "agent_trace_lab", "import-otlp", str(raw),
+                    "--policy-suite", str(POLICY), "--case-id", "demo",
+                    "--expected", "allow", "--output", str(Path(tmp) / "converted.json"),
+                ],
+                cwd=ROOT, capture_output=True, text=True, timeout=15,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("kvlistValue[0]", result.stderr)
+            self.assertNotIn(marker, result.stderr + result.stdout)
 
     def test_invalid_trace_path_in_integrated_report(self) -> None:
         attrs = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]

@@ -12,7 +12,7 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-002 | DONE | CLI, JSON/text reports, safe sample suite | ATL-001 | Sample 8/8 labeled fixtures, exit behavior tested | 20m |
 | ATL-003 | DONE | README, research, CI, security and packaging checks | ATL-001/002 | 16 tests + wheel PASS; GitHub Actions 4/4 PASS on commit 43507d1 | 25m |
 | ATL-004 | IN_PROGRESS | Independent labeling/evaluation beyond our own synthetic fixtures | ATL-003 | External synthetic subtask complete (ATL-004A), but authentic traces and representative labels still absent | 25m |
-| ATL-005 | NOT_STARTED | Read-only adapter for one real agent trace schema | ATL-004 | Correct import without executing any tool actions | 25m |
+| ATL-005 | IMPLEMENTATION_VERIFIED / ACCEPTANCE_BLOCKED (ATL-004) | Read-only adapter for one real agent trace schema | ATL-004 | ATL-008 OTLP, ATL-011 SWE and ATL-004D AgentDojo already implemented; pinned SWE action provenance verified; real permission evidence not met (see ATL-004Q matrix) | 25m |
 | ATL-006 | NOT_STARTED | Evaluation against externally labeled dataset | ATL-005 | Reproducible precision/recall with failure cases | 25m |
 | ATL-007 | NOT_STARTED | Qualified portfolio showcase | ATL-006 | Actual demonstration and evidence, no KiraShop regression | 20m |
 | ATL-008 | DONE | Import read-only OpenTelemetry execute_tool spans | ATL-003 | #1 closed by merged PR #2; single-trace parsing, missing-argument rejection; 29 unit tests and PR CI 4/4 PASS | 25m |
@@ -40,6 +40,7 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-004N | DONE (synthetic CLI demo/release preflight only) | Reproducible and truthful permissive-vs-task-scoped CLI demo, release preflight | ATL-004M | Both synthetic fixtures evaluated inside isolated installed wheel; intentional 0/1 vs task-scoped 5/5, 8 new negative/positive tests, 221 tests and 4/4 CI PASS | 25m |
 | ATL-004O | DONE (installed console parity, no real grant claims) | Verify installed wheel console launcher independently of module invocation | ATL-004N | pip --target/bin launcher verified; permissive exit 1 and scoped exit 0, exact JSON parity, 3 tests added, 224 tests and 4/4 CI PASS | 20m |
 | ATL-004P | DONE (bounded validation-error redaction; not full anonymization) | Redact untrusted JSON key/tool identifiers from CLI validation errors | ATL-004O | Error leak reproduced pre-patch, schema errors now refer to safe positions/counts, 8 tests added, 232 tests and 4/4 CI PASS | 20m |
+| ATL-004Q | IN_PROGRESS (local reconciliation and OTLP regression verified; CI follows) | Reconcile ATL-005 adapter implementation; fix nested OTLP diagnostic key disclosure | ATL-004P | Source-linked adapter evidence matrix; pre-fix leak reproduced; numeric kvlist error locations; 3 new tests, 235 local tests PASS | 20m |
 
 Local baseline **2026-11-20**: Python 3.12.10, **11 unit tests passed**, **8/8 example labels matched**; no claim of real-agent benchmark performance.
 

@@ -26,6 +26,11 @@ messages**. Normal reports and imported private trace files can still
 contain user-supplied identifiers and values; this is not a complete
 anonymization feature.
 
+The [ATL-005 adapter reconciliation](docs/ATL005_ADAPTER_RECONCILIATION.md)
+maps the already-implemented OTLP, SWE and AgentDojo importers to the
+original read-only trace-adapter objective. Independent task-authorization
+evidence and externally labeled security metrics remain unmet release gates.
+
 The included synthetic example yields **8/8 labeled matches** with TP=5 and TN=3. **This is a smoke test, not an independently measured agent-safety score.**
 
 ### Two-policy demo: a deliberate mismatch and a task-scoped alternative
