@@ -12,6 +12,7 @@
 - Add ATL-004I opt-in exact-byte task-source span SHA verification for private review citations, with bounded immutable source downloads, nonoverlap/line limits and negative tests. Verified citation bytes are not evidence of independent human reviewers, semantic authorization or genuine consent.
 - Add ATL-004J source-verified metadata-only feasibility matrix for eight AgentDojo user-task definitions, preserving 24 planned/20 present/four missing exposures. Report benchmark reference-tool-name overlap without claiming permission, semantic correctness or detector accuracy; all real-human labels abstain.
 - Add ATL-004K bounded optional recorded argument-key/type shape inventory, preserving pinned run hashes, action order and missingness. Redact unrecognized argument names and never publish argument values, real consent or security effectiveness claims.
+- Add ATL-004L installed development-wheel QA: build and install wheel without runtime dependency resolution, run synthetic AgentDojo import/evaluation outside source checkout, verify research source scripts and local evidence are excluded from package, and test via Windows/Linux CI matrix. This is reproducibility evidence only.
 
 ## v0.4.0 — 2026-11-20
 

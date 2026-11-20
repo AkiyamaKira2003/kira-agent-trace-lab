@@ -35,6 +35,7 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-004I | DONE (pinned byte provenance only; human review remains separate) | Validate claimed reviewer source spans at original pinned task bytes | ATL-004H | Opt-in read-only source SHA and exact line-span digest checks, bounds/overlap tests, no content disclosure or reviewer-authentication claims; 172 tests and 4/4 PR CI PASS | 25m |
 | ATL-004J | DONE (source-intent research only; independent authorization open) | Reconcile eight source-authored tasks and 24 exposure slots without inventing action grants | ATL-004I | Source-pinned eight-task AST audit, metadata-only task/effect/condition matrix, 24-slot abstentions, 13 negative tests, 185 local tests and 4/4 CI PASS | 25m |
 | ATL-004K | DONE (privacy shape verification only; no action authorization) | Audit recorded argument key/type shapes without sensitive values or grant claims | ATL-004J | 20 source hashes verified, 48 action shape summaries, four unknown argument names redacted, 13 tests added, 198 tests and CI 4/4 PASS | 25m |
+| ATL-004L | IN_PROGRESS (local smoke verified; CI/merge gate follows) | Isolated installed-wheel reproducibility and packaging boundary | ATL-004K | Development wheel installs offline, AgentDojo synthetic 2 calls/1 eval + legacy 8-case suite PASS outside source; 206 local tests; CI gate pending | 25m |
 
 Local baseline **2026-11-20**: Python 3.12.10, **11 unit tests passed**, **8/8 example labels matched**; no claim of real-agent benchmark performance.
 
