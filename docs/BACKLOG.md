@@ -38,6 +38,7 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-004L | DONE (installed-wheel smoke only; no byte-identical build claim) | Isolated installed-wheel reproducibility and packaging boundary | ATL-004K | Development wheel installs offline, AgentDojo synthetic 2 calls/1 eval + legacy 8-case suite PASS outside source; 206 local tests; CI 4/4 PASS | 25m |
 | ATL-004M | DONE (same-runner byte identical; no cross-platform claim) | Compare two same-commit SOURCE_DATE_EPOCH-pinned development wheels | ATL-004L | Two builds matched SHA locally; 7 negative/positive tests, 213 tests PASS; CI 4/4 PASS on Windows/Ubuntu | 25m |
 | ATL-004N | DONE (synthetic CLI demo/release preflight only) | Reproducible and truthful permissive-vs-task-scoped CLI demo, release preflight | ATL-004M | Both synthetic fixtures evaluated inside isolated installed wheel; intentional 0/1 vs task-scoped 5/5, 8 new negative/positive tests, 221 tests and 4/4 CI PASS | 25m |
+| ATL-004O | IN_PROGRESS (local console verification complete; CI/merge pending) | Verify installed wheel console launcher independently of module invocation | ATL-004N | pip --target/bin launcher verified; permissive exit 1 and scoped exit 0, exact JSON parity, 3 tests added, 224 local tests PASS | 20m |
 
 Local baseline **2026-11-20**: Python 3.12.10, **11 unit tests passed**, **8/8 example labels matched**; no claim of real-agent benchmark performance.
 

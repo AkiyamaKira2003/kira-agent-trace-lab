@@ -38,6 +38,16 @@ The installed CLI then:
    label matches).
 4. Removes all temporary site-install and fixture files automatically.
 
+ATL-004O also checks the **actual installed console entrypoint**
+`agent-trace-lab`: with `pip --target`, launcher files live under the
+target `bin/` directory on both Windows and POSIX systems (Windows uses
+`agent-trace-lab.exe`). The verifier checks that the launcher is present
+inside the installed target, is executable on POSIX, and produces exactly
+the same parsed JSON and exit codes as `python -S -m agent_trace_lab` for
+both the deliberately mismatched permissive demo (exit 1) and five-case
+task-scoped demo (exit 0). This check runs in the same outside-source,
+temporary environment and does not invoke a model or replay actual tools.
+
 The result contains the built wheel SHA-256, package-member count and
 verified synthetic fixture counts, **not raw trace arguments**. There is
 no claim of independent authorization, genuine human grants, production

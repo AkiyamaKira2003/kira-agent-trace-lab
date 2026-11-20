@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import io
+import copy
 import subprocess
 from pathlib import Path
 import tempfile
@@ -11,9 +11,14 @@ from unittest.mock import patch
 import zipfile
 
 from agent_trace_lab.schema import SuiteError
+from agent_trace_lab.engine import evaluate_suite
+from agent_trace_lab.schema import load_suite
 from scripts.verify_installed_wheel import (
     REQUIRED_WHEEL_MEMBERS, _execute, validate_evaluation, wheel_members,
+    installed_console_path, validate_console_equivalence,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def make_wheel(directory: Path, *, members: list[str] | None = None) -> Path:
@@ -100,6 +105,56 @@ class InstalledWheelQATests(unittest.TestCase):
                 _execute(["python"], Path("."), {})
         self.assertNotIn("SECRET-SENTINEL", str(error.exception))
         self.assertNotIn("PRIVATE-RECIPIENT-ADDRESS", str(error.exception))
+
+    def test_console_launcher_is_found_under_pip_target_bin_on_both_platforms(self):
+        with tempfile.TemporaryDirectory() as directory:
+            site = Path(directory)
+            (site / "bin").mkdir()
+            windows = site / "bin" / "agent-trace-lab.exe"
+            unix = site / "bin" / "agent-trace-lab"
+            windows.write_bytes(b"synthetic executable placeholder")
+            unix.write_bytes(b"#!/usr/bin/env python\n")
+            unix.chmod(0o755)
+            self.assertEqual(installed_console_path(site, "nt"), windows)
+            with patch("scripts.verify_installed_wheel.os.access", return_value=True):
+                self.assertEqual(installed_console_path(site, "posix"), unix)
+
+    def test_missing_or_unsupported_console_launcher_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            site = Path(directory)
+            with self.assertRaisesRegex(SuiteError, "absent or unsafe"):
+                installed_console_path(site, "nt")
+            with self.assertRaisesRegex(SuiteError, "unsupported"):
+                installed_console_path(site, "unexpected_platform")
+            (site / "bin").mkdir()
+            unix = site / "bin" / "agent-trace-lab"
+            unix.write_bytes(b"not executable")
+            with patch("scripts.verify_installed_wheel.os.access", return_value=False):
+                with self.assertRaisesRegex(SuiteError, "absent or unsafe"):
+                    installed_console_path(site, "posix")
+
+    def test_console_vs_module_verdict_comparison_rejects_false_equivalence(self):
+        permissive = evaluate_suite(load_suite(ROOT / "examples" / "demo_permissive.json"))
+        scoped = evaluate_suite(load_suite(ROOT / "examples" / "demo_task_scoped.json"))
+        validate_console_equivalence(permissive, scoped,
+                                     copy.deepcopy(permissive), copy.deepcopy(scoped))
+        for section, change in (
+            ("permissive", "schema_version"),
+            ("permissive", "summary"),
+            ("scoped", "schema_version"),
+            ("scoped", "summary"),
+        ):
+            with self.subTest(section=section, field=change):
+                observed_broad = copy.deepcopy(permissive)
+                observed_scoped = copy.deepcopy(scoped)
+                altered = observed_broad if section == "permissive" else observed_scoped
+                if change == "schema_version":
+                    altered[change] = "other"
+                else:
+                    altered["summary"]["accuracy"] = -1
+                with self.assertRaises(SuiteError):
+                    validate_console_equivalence(permissive, scoped,
+                                                 observed_broad, observed_scoped)
 
 
 if __name__ == "__main__":

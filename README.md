@@ -39,6 +39,8 @@ python -m agent_trace_lab evaluate examples/demo_task_scoped.json
 To verify these exact outcomes from an isolated installed development wheel,
 run `python -m scripts.verify_installed_wheel --wheel-dir artifacts/qa-demo-wheel`
 after building the wheel as documented in the [demo instructions](docs/POLICY_CONTRAST_DEMO.md).
+The smoke gate additionally checks the installed `agent-trace-lab` console
+launcher against module invocation on the same fictional inputs.
 Neither a fictional grant nor fixture-label agreement is authenticated user
 consent or evidence of real-world protection.
 
