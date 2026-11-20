@@ -120,6 +120,27 @@ def validate_policy_contrast(permissive: Any, task_scoped: Any) -> None:
             raise SuiteError("task-scoped denial reason or action index changed")
 
 
+def installed_console_path(site: Path, platform_name: str) -> Path:
+    """Find the pip --target console launcher without assuming Scripts on Windows."""
+    if platform_name not in ("nt", "posix"):
+        raise SuiteError("unsupported console launcher platform")
+    name = "agent-trace-lab.exe" if platform_name == "nt" else "agent-trace-lab"
+    launcher = site / "bin" / name
+    if (not launcher.is_file()
+            or not launcher.resolve().is_relative_to(site.resolve())
+            or (platform_name == "posix" and not os.access(launcher, os.X_OK))):
+        raise SuiteError("installed wheel console launcher absent or unsafe")
+    return launcher
+
+
+def validate_console_equivalence(module_permissive: Any, module_scoped: Any,
+                                 console_permissive: Any, console_scoped: Any) -> None:
+    validate_policy_contrast(module_permissive, module_scoped)
+    validate_policy_contrast(console_permissive, console_scoped)
+    if console_permissive != module_permissive or console_scoped != module_scoped:
+        raise SuiteError("installed console launcher differs from module CLI")
+
+
 def _execute(args: list[str], cwd: Path, env: dict[str, str], *, expected_exit: int = 0) -> str:
     completed = subprocess.run(
         args, cwd=str(cwd), env=env, capture_output=True, text=True,
@@ -182,7 +203,14 @@ def run(wheel: Path) -> dict[str, Any]:
         scoped = json.loads(_execute(
             [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
              "demo_task_scoped.json", "--format", "json"], work, env))
-        validate_policy_contrast(permissive, scoped)
+        launcher = installed_console_path(site, os.name)
+        console_permissive = json.loads(_execute(
+            [str(launcher), "evaluate", "demo_permissive.json", "--format", "json"],
+            work, env, expected_exit=1))
+        console_scoped = json.loads(_execute(
+            [str(launcher), "evaluate", "demo_task_scoped.json", "--format", "json"],
+            work, env))
+        validate_console_equivalence(permissive, scoped, console_permissive, console_scoped)
     return {
         "status": "ISOLATED_INSTALLED_WHEEL_SMOKE_PASS",
         "wheel_sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
@@ -192,6 +220,8 @@ def run(wheel: Path) -> dict[str, Any]:
         "synthetic_permissive_expected_mismatch": True,
         "synthetic_task_scoped_cases_matched": 5,
         "synthetic_task_scoped_real_grants_authenticated": False,
+        "installed_console_launcher_verified": True,
+        "installed_console_matches_module_results": True,
         "isolated_site_import_verified": True,
         "research_scripts_shipped_in_wheel": False,
         "authenticated_user_grants_verified": False,

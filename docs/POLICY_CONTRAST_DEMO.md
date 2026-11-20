@@ -71,7 +71,9 @@ python -m scripts.verify_installed_wheel --wheel-dir artifacts/qa-demo-wheel
 The second command performs a fully offline `pip --no-index --no-deps`
 installation into a temporary directory, verifies import from that
 installation using Python `-S`, and executes both demo JSON files **outside
-the source checkout**. It verifies:
+the source checkout**. It also invokes the actual installed
+`agent-trace-lab` console launcher (Windows `.exe`) and verifies that its
+JSON results and exit codes exactly match module invocation. It verifies:
 
 - The permissive example **must** return exit 1 and have one mismatched
   synthetic label with `actual=allow`.
