@@ -19,6 +19,16 @@ Exit **0** means all expected case labels matched, **1** means at least one mism
 
 The included synthetic example yields **8/8 labeled matches** with TP=5 and TN=3. **This is a smoke test, not an independently measured agent-safety score.**
 
+### External counterexample (deliberate mismatch)
+
+An attributed two-case [AgentDrift external case study](docs/EXTERNAL_CASE_STUDY.md) demonstrates that tool-name allowlists **cannot infer user-task authorization**. The third-party, independently labeled *synthetic* corpus includes a hijacked email-forward/delete sequence. With an intentionally permissive policy, this evaluator still **allows** it: the example exits **1**, exposing the expected *semantic coverage gap* rather than hiding it behind a perfect synthetic score.
+
+```sh
+python -m agent_trace_lab evaluate examples/agentdrift_counterexamples.json
+```
+
+The two adapted data records are **CC BY 4.0**, not MIT; source, authors, license and modifications are recorded in the case study. This two-record sample is **not** a population estimate or a representative attack-detection benchmark.
+
 ## Import OpenTelemetry tool traces (v0.2)
 
 The converter accepts a saved **OTLP/HTTP JSON** export using OpenTelemetry's GenAI execute-tool span attributes: `gen_ai.operation.name=execute_tool`, `gen_ai.tool.name`, and opt-in `gen_ai.tool.call.arguments`. Supported argument formats are JSON-object strings or a limited structured OTLP `kvlistValue`.
@@ -80,4 +90,4 @@ python -m unittest discover -s tests -v
 python -m compileall -q agent_trace_lab tests
 ```
 
-See [backlog / checkpoint](docs/BACKLOG.md). Original code and fixtures are MIT-licensed; researched third-party projects retain their own licenses.
+See [backlog / checkpoint](docs/BACKLOG.md). Original code and self-authored fixtures are MIT-licensed. The adapted AgentDrift data records are separately CC BY 4.0 licensed with attribution in the external case study.

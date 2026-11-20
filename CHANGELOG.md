@@ -1,6 +1,11 @@
 # Changelog
 
-## v0.2.0 — feature release candidate (2026-11-20)
+## Unreleased
+
+- Attributed external AgentDrift **synthetic** action-case adaptation under CC BY 4.0.
+- Regression test deliberately demonstrates task-authorization blind spots: one benign match and one hijacked mismatch under a permissive tool-name policy. This is a two-case case study, not a model-safety benchmark.
+
+## v0.2.0 — 2026-11-20
 
 - Read-only importer for a limited OTLP/HTTP JSON execute_tool span format.
 - Required explicit human label, tool name, captured arguments, trace ID and timestamp.
