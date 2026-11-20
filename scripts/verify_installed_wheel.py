@@ -364,6 +364,53 @@ def run(wheel: Path) -> dict[str, Any]:
             [str(launcher), "evaluate", "demo_task_scoped.json", "--format", "json"],
             work, env))
         validate_console_equivalence(permissive, scoped, console_permissive, console_scoped)
+        # Check real installed module and launcher output publication, not
+        # just source-unit mocks. The fixture label mismatch must still exit 1.
+        report_args = [
+            "evaluate", "suite.json", "--format", "json",
+            "--output", "installed_evaluation_report.json",
+        ]
+        _execute([sys.executable, "-S", "-m", "agent_trace_lab", *report_args], work, env)
+        published = (work / "installed_evaluation_report.json").read_bytes()
+        validate_evaluation(json.loads(published), 8)
+        _execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab", *report_args],
+            work, env, expected_exit=2,
+        )
+        _execute([str(launcher), *report_args], work, env, expected_exit=2)
+        if (work / "installed_evaluation_report.json").read_bytes() != published:
+            raise SuiteError("installed evaluation report overwritten without opt-in")
+        _execute([str(launcher), *report_args, "--overwrite"], work, env)
+        if (work / "installed_evaluation_report.json").read_bytes() != published:
+            raise SuiteError("installed evaluation explicit overwrite changed report semantics")
+        mismatch_args = [
+            "evaluate", "demo_permissive.json", "--format", "json",
+            "--output", "installed_mismatched_report.json",
+        ]
+        _execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab", *mismatch_args],
+            work, env, expected_exit=1,
+        )
+        mismatch_report = (work / "installed_mismatched_report.json").read_bytes()
+        if json.loads(mismatch_report)["summary"]["matched"] != 0:
+            raise SuiteError("installed evaluation mismatch report was incorrect")
+        _execute([str(launcher), *mismatch_args], work, env, expected_exit=2)
+        _execute(
+            [str(launcher), *mismatch_args, "--overwrite"],
+            work, env, expected_exit=1,
+        )
+        input_bytes = (work / "suite.json").read_bytes()
+        _execute(
+            [str(launcher), "evaluate", "suite.json", "--output", "suite.json",
+             "--overwrite"], work, env, expected_exit=2,
+        )
+        if (work / "installed_mismatched_report.json").read_bytes() != mismatch_report:
+            raise SuiteError("installed mismatch overwrite changed report semantics")
+        if (work / "suite.json").read_bytes() != input_bytes:
+            raise SuiteError("installed evaluation report modified its input suite")
+        if (untouched.read_bytes() != sentinel
+                or list(work.glob(".agent-trace-report-*.tmp"))):
+            raise SuiteError("installed evaluation modified unrelated files or left temporary files")
         policy_delta_args = [
             "compare-policies", "demo_permissive.json",
             "--candidate-policy", "compare_candidate_task_guarded.json",
@@ -431,6 +478,8 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_policy_delta_case_id_redaction_verified": True,
         "installed_schema_diagnostics_redacted": True,
         "installed_import_output_no_clobber_verified": True,
+        "installed_evaluation_output_no_clobber_verified": True,
+        "installed_evaluation_mismatch_exit_and_overwrite_verified": True,
         "installed_import_explicit_overwrite_verified": True,
         "installed_import_formats_verified": len(import_cases),
         "isolated_site_import_verified": True,
