@@ -19,7 +19,8 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-004A | DONE | Attribute external AgentDrift *synthetic* examples, expose semantic policy gap | ATL-003 | PR #4 merged, issue #3 closed; 31 tests, GitHub CI 4/4 PASS | 25m |
 | ATL-009 | DONE | Opt-in schema 1.1 with deterministic task-bound grants and negative controls | ATL-004A | Issue #5 CLOSED by merged PR #6; 50 local tests PASS; GitHub CI 4/4 PASS; v0.3.0 release | 20m |
 | ATL-010 | DONE | Audit real benchmark-run trajectory sources, schema and reuse limits | ATL-004A | Pinned NVIDIA/Nebius revisions, licenses, 1 sampled NVIDIA row structure; see source audit | 20m |
-| ATL-011 | IN_PROGRESS | Experimental offline importer for one SWE-style recorded tool-call row | ATL-010 | [Issue #7](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/7); 63/63 synthetic/local tests PASS, real-row E2E NOT_VERIFIED due endpoint errors | 25m |
+| ATL-011 | DONE | Experimental offline importer for one SWE-style recorded tool-call row | ATL-010 | [Issue #7](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/7) CLOSED by PR #8, 63 local tests PASS, PR CI 4/4 PASS; independent real-row validation is a separate gate | 25m |
+| ATL-012 | BLOCKED | Validate imported trace against pinned external benchmark-run row | ATL-011 | [Issue #9](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/9); published dataset endpoint HTTP 502/timeout; secure data retrieval and licensing needed | 25m |
 
 Local baseline **2026-11-20**: Python 3.12.10, **11 unit tests passed**, **8/8 example labels matched**; no claim of real-agent benchmark performance.
 
@@ -77,3 +78,13 @@ Released version **v0.2.0** remains available at `https://github.com/AkiyamaKira
 - Self-authored structural fixture and 13 new negative/positive unit tests; entire test suite **63/63 PASS**; synthetic CLI import and evaluation PASS.
 - Upstream NVIDIA sample envelope checked (48 calls), but HTTP 502 and subsequent timeout prevented external raw-data end-to-end validation. **EXTERNAL_E2E = NOT_VERIFIED**.
 - **NEXT_ACTION:** complete source/CLI QA, packaging, secret scan and CI for experimental implementation; document this caveat in PR. Merge only after synthetic/compatibility checks are green; keep true external-compatibility task separate and do **not** tag a production release based only on synthetic tests.
+
+### Fixed-loop handoff checkpoint — 2026-11-20 / ATL-011
+
+- **Project / machine:** Kira Agent Trace Lab, KIRAA via KPC Core, path `C:\Projects\kira-agent-trace-lab`. No pre-existing KPCenter project state/registration, and none created.
+- **Merged implementation:** [PR #8](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/pull/8) MERGED; issue #7 CLOSED. Merge commit `a5e574800b7309fe7cbe1b73d97ba22e9aa28285`, local `main` fast-forwarded to match origin/main.
+- **QA evidence:** Python 3.12 `python -m unittest discover -s tests -q` **63/63 PASS on merged main**; `import-swe` synthetic CLI import and `evaluate` PASS; v0.4.0.dev0 wheel built and isolated-install smoke-tested before merge. PR [GitHub Actions run 44681796714](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/actions/runs/44681796714) **4/4 PASS** on Windows/Linux, Python 3.10/3.12.
+- **Security/legal:** no raw NVIDIA dataset or model conversations committed, test fixture self-authored. Staged diff and common credential patterns checked prior to PR. Permission labels and source_ref are not authenticated by this tool.
+- **Release:** last officially tagged stable release [v0.3.0](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/releases/tag/v0.3.0). Experimental `0.4.0.dev0` lives on main but **no v0.4 stable release**; external compatibility remains not verified.
+- **Outstanding blocker:** upstream NVIDIA dataset rows API has returned HTTP 502 and timeout in multiple attempts, so **external raw-row E2E NOT_VERIFIED**. No benchmark safety score or task authorization ground truth established; ATL-004 remains IN_PROGRESS.
+- **NEXT_ACTION:** [Issue #9 / ATL-012](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/9), obtain one row at pinned revision via an alternative publisher-supported route (not repeatedly retrying failing endpoint). Confirm row-level source code license; keep raw data inside gitignored `artifacts/`. Test `import-swe` on it without executing tools, record sanitized action counts and failure details. If still blocked, preserve NOT_VERIFIED and research smaller license-clear benchmark trace.
