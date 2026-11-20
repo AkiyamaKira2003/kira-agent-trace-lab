@@ -9,7 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .engine import evaluate_suite
+from .engine import compare_policies, evaluate_suite
 from .schema import SuiteError, load_json_document, load_suite
 from .otlp import import_otlp
 from .swe import import_swe_row
@@ -55,6 +55,13 @@ def main(argv: list[str] | None = None) -> int:
     evaluate.add_argument("suite", type=Path)
     evaluate.add_argument("--format", choices=("text", "json"), default="text")
     evaluate.add_argument("--output", type=Path, help="write report to file instead of stdout")
+    compare = subcommands.add_parser(
+        "compare-policies", help="compare policy-only decision deltas on identical offline trace cases",
+    )
+    compare.add_argument("suite", type=Path, help="validated baseline suite and recorded cases")
+    compare.add_argument("--candidate-policy", type=Path, required=True,
+                         help="JSON object containing schema_version and policy only")
+    compare.add_argument("--format", choices=("text", "json"), default="text")
     importer = subcommands.add_parser("import-otlp", help="convert recorded OTLP JSON tool spans into a suite")
     importer.add_argument("otlp", type=Path, help="saved OTLP/HTTP JSON export")
     importer.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
@@ -85,6 +92,29 @@ def main(argv: list[str] | None = None) -> int:
     responses.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output file")
     args = parser.parse_args(argv)
     try:
+        if args.command == "compare-policies":
+            report = compare_policies(
+                load_suite(args.suite), load_json_document(args.candidate_policy),
+            )
+            if args.format == "json":
+                print(json.dumps(report, indent=2, ensure_ascii=False))
+            else:
+                counts = report["summary"]
+                print(
+                    f"Policy decisions changed: {counts['changed']}/{counts['total_cases']} "
+                    f"(allow->deny={counts['allow_to_deny']}, "
+                    f"deny->allow={counts['deny_to_allow']}). "
+                    f"Candidate ignored grant records: {counts['candidate_ignored_grant_cases']}."
+                )
+                for case in report["cases"]:
+                    status = "CHANGED" if case["changed"] else "SAME"
+                    print(
+                        f"{status} {case['id']}: "
+                        f"baseline={case['baseline']} candidate={case['candidate']} "
+                        f"baseline_codes={','.join(case['baseline_codes']) or 'none'} "
+                        f"candidate_codes={','.join(case['candidate_codes']) or 'none'}"
+                    )
+            return 0  # A policy difference is a result, not an execution failure.
         if args.command == "import-responses":
             if args.output.resolve() in (args.response.resolve(), args.policy_suite.resolve()):
                 raise SuiteError("refusing to overwrite the response or policy suite")

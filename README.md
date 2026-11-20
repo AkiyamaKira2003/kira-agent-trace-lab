@@ -61,6 +61,21 @@ python -m agent_trace_lab evaluate examples/demo_permissive.json
 python -m agent_trace_lab evaluate examples/demo_task_scoped.json
 ```
 
+To compare **the exact same recorded case** under those two policies,
+without pretending two suites contain identical scenario sets, use:
+
+```sh
+python -m agent_trace_lab compare-policies examples/demo_permissive.json --candidate-policy examples/compare_candidate_task_guarded.json --format json
+```
+
+The baseline file supplies the recorded cases and original policy;
+the candidate file contains only schema_version and policy. The CLI
+returns changed decisions, not accuracy or precision/recall scores.
+The fictional unrequested forward changes from allow to deny solely
+because the candidate requires a task grant. This comparison does
+**not** authenticate user consent or modify any source file.
+See the [policy delta verification](docs/POLICY_CONTRAST_DEMO.md).
+
 To verify these exact outcomes from an isolated installed development wheel,
 run `python -m scripts.verify_installed_wheel --wheel-dir artifacts/qa-demo-wheel`
 after building the wheel as documented in the [demo instructions](docs/POLICY_CONTRAST_DEMO.md).

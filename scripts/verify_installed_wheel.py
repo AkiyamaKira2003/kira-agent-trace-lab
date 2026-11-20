@@ -35,6 +35,7 @@ EXAMPLES = (
     "agentdojo_policy_simulated_scope.json",
     "demo_permissive.json",
     "demo_task_scoped.json",
+    "compare_candidate_task_guarded.json",
 )
 REQUIRED_WHEEL_MEMBERS = frozenset({
     "agent_trace_lab/__init__.py",
@@ -320,7 +321,7 @@ def run(wheel: Path) -> dict[str, Any]:
             [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
              "demo_task_scoped.json", "--format", "json"], work, env))
         launcher = installed_console_path(site, os.name)
-        # Test ALL three actual installed import commands, independently of
+        # Test all four actual installed import commands, independently of
         # source-checkout imports. Two no-clobber invocations must preserve
         # the exact bytes and an explicit overwrite must change only case_id.
         import_cases = (
@@ -363,6 +364,25 @@ def run(wheel: Path) -> dict[str, Any]:
             [str(launcher), "evaluate", "demo_task_scoped.json", "--format", "json"],
             work, env))
         validate_console_equivalence(permissive, scoped, console_permissive, console_scoped)
+        policy_delta_args = [
+            "compare-policies", "demo_permissive.json",
+            "--candidate-policy", "compare_candidate_task_guarded.json",
+            "--format", "json",
+        ]
+        module_delta = json.loads(_execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab", *policy_delta_args],
+            work, env,
+        ))
+        console_delta = json.loads(_execute(
+            [str(launcher), *policy_delta_args], work, env,
+        ))
+        if (module_delta != console_delta
+                or module_delta["summary"]["total_cases"] != 1
+                or module_delta["summary"]["changed"] != 1
+                or module_delta["summary"]["allow_to_deny"] != 1
+                or module_delta["cases"][0]["candidate_codes"] != ["TASK_GRANT_REQUIRED"]
+                or "unrequested@example.invalid" in json.dumps(module_delta)):
+            raise SuiteError("installed CLI policy delta comparison failed")
         # Synthetic untrusted property name must never surface in the
         # installed module or console stderr. Keep this file temporary.
         private_marker = "PRIVATE_SYNTHETIC_JSON_KEY_98765"
@@ -392,6 +412,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "synthetic_task_scoped_real_grants_authenticated": False,
         "installed_console_launcher_verified": True,
         "installed_console_matches_module_results": True,
+        "installed_policy_delta_comparison_verified": True,
         "installed_schema_diagnostics_redacted": True,
         "installed_import_output_no_clobber_verified": True,
         "installed_import_explicit_overwrite_verified": True,
