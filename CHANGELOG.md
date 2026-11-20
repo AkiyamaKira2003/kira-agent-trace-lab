@@ -2,6 +2,7 @@
 
 ## Unreleased (0.5.0.dev0 development; not in v0.4.0 wheel)
 
+- ATL-004R: prevent silent replacement of pre-existing trace-import output files; require explicit --overwrite for atomic regular-file replacement and reject symlink outputs, with cross-format and hardlink safety regression tests.
 - ATL-004Q: reconcile existing OTLP/SWE/AgentDojo importers with ATL-005 without duplicating features or waiving human authorization gates; prevent malformed nested OTLP kvlist values from echoing untrusted property names in error locations.
 - ATL-004P: redact untrusted duplicate/unknown JSON property names and tool identifiers from schema validation error messages, while preserving strict rejection and trusted field-location diagnostics; regression tests cover CLI stderr.
 - ATL-004O: verify the real pip-installed console launcher from an isolated wheel target on Windows/POSIX, comparing the permissive and task-scoped demo exit codes and JSON with module invocation; negative checks reject absent or divergent entrypoints.

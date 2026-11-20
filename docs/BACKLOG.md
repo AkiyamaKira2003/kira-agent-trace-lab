@@ -41,6 +41,7 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-004O | DONE (installed console parity, no real grant claims) | Verify installed wheel console launcher independently of module invocation | ATL-004N | pip --target/bin launcher verified; permissive exit 1 and scoped exit 0, exact JSON parity, 3 tests added, 224 tests and 4/4 CI PASS | 20m |
 | ATL-004P | DONE (bounded validation-error redaction; not full anonymization) | Redact untrusted JSON key/tool identifiers from CLI validation errors | ATL-004O | Error leak reproduced pre-patch, schema errors now refer to safe positions/counts, 8 tests added, 232 tests and 4/4 CI PASS | 20m |
 | ATL-004Q | DONE (adapter implementation reconciled; independent-authorization gate unchanged) | Reconcile ATL-005 adapter implementation; fix nested OTLP diagnostic key disclosure | ATL-004P | Source-linked adapter evidence matrix; pre-fix leak reproduced; numeric kvlist error locations; 3 new tests, 235 tests and 4/4 CI PASS | 20m |
+| ATL-004R | IN_PROGRESS (local output safety verified; CI/merge follows) | Prevent silent overwrite of imported trace output, retain explicit opt-in replacement | ATL-004Q | Destructive overwrite reproduced in synthetic temp; exclusive default, atomic --overwrite, symlink/hardlink safeguards, 7 new tests, local verification pending CI | 25m |
 
 Local baseline **2026-11-20**: Python 3.12.10, **11 unit tests passed**, **8/8 example labels matched**; no claim of real-agent benchmark performance.
 
