@@ -100,6 +100,27 @@ unverified real-user grant and independent security-evaluation gates.
 
 The included synthetic example yields **8/8 labeled matches** with TP=5 and TN=3. **This is a smoke test, not an independently measured agent-safety score.**
 
+### Structural-only validation (no policy evaluation)
+
+Before evaluating a local suite or using its caller-supplied labels,
+run `validate` to check the exact existing strict JSON/schema
+rules and inspect **counts only**. This command does **not**
+execute recorded tools, evaluate any policy, infer human grants,
+emit case IDs, tool names or argument values, or measure safety
+performance. Valid structure exits **0**, invalid input exits **2**:
+
+```sh
+python -m agent_trace_lab validate examples/suite.json --format json
+python -m agent_trace_lab validate examples/demo_task_scoped.json --format text
+python -m agent_trace_lab validate examples/suite.json --format json --output artifacts/structural_counts.json
+```
+
+Output contains the suite schema version, number of cases, recorded
+calls, policy tools, guarded tools and `evaluation_performed=false`.
+Saving uses atomic no-clobber publication; `--overwrite` is
+explicit, and the original suite cannot be overwritten. The original
+input may still contain sensitive data: this does **not** anonymize it.
+
 ### Two-policy demo: a deliberate mismatch and a task-scoped alternative
 
 The [self-authored CLI contrast](docs/POLICY_CONTRAST_DEMO.md) uses the same

@@ -337,6 +337,57 @@ def run(wheel: Path) -> dict[str, Any]:
             [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
              "demo_task_scoped.json", "--format", "json"], work, env))
         launcher = installed_console_path(site, os.name)
+        # Structural preflight is intentionally independent of policy
+        # evaluation and caller labels, and serializes no case/tool values.
+        validate_args = ["validate", "suite.json", "--format", "json"]
+        module_preflight = _execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab", *validate_args],
+            work, env,
+        )
+        console_preflight = _execute(
+            [str(launcher), *validate_args], work, env,
+        )
+        expected_keys = {
+            "schema_version", "case_count", "recorded_call_count",
+            "policy_tool_count", "guarded_tool_count", "evaluation_performed",
+        }
+        structural = json.loads(module_preflight)
+        if (console_preflight != module_preflight
+                or set(structural) != expected_keys
+                or structural["schema_version"] != "1.0"
+                or structural["case_count"] != 8
+                or structural["policy_tool_count"] != 3
+                or structural["evaluation_performed"] is not False
+                or any(name in module_preflight for name in (
+                    "normal_search", "files.read", "normal_file",
+                    "TASK_GRANT_REQUIRED", "PRIVATE_SYNTHETIC"))):
+            raise SuiteError("installed structural validation unexpectedly evaluated or leaked input")
+        guarded_structural = json.loads(_execute(
+            [str(launcher), "validate", "demo_task_scoped.json", "--format", "json"],
+            work, env,
+        ))
+        if (guarded_structural["schema_version"] != "1.1"
+                or guarded_structural["guarded_tool_count"] < 1
+                or guarded_structural["evaluation_performed"] is not False):
+            raise SuiteError("installed structural validation of guarded suite failed")
+        destination = "installed_structural_counts.json"
+        stored_args = [*validate_args, "--output", destination]
+        if _execute([str(launcher), *stored_args], work, env):
+            raise SuiteError("installed structural file output unexpectedly printed input data")
+        if (work / destination).read_text(encoding="utf-8") != module_preflight:
+            raise SuiteError("installed structural saved counts differ from stdout")
+        _execute([str(launcher), *stored_args], work, env, expected_exit=2)
+        _execute([str(launcher), *stored_args, "--overwrite"], work, env)
+        if (work / destination).read_text(encoding="utf-8") != module_preflight:
+            raise SuiteError("installed structural overwrite changed validated counts")
+        input_bytes = (work / "suite.json").read_bytes()
+        _execute(
+            [str(launcher), *validate_args, "--output", "suite.json", "--overwrite"],
+            work, env, expected_exit=2,
+        )
+        if ((work / "suite.json").read_bytes() != input_bytes
+                or list(work.glob(".agent-trace-validate-*.tmp"))):
+            raise SuiteError("installed structural validation modified original data")
         # Test all installed import commands, independently of
         # source-checkout imports. Two no-clobber invocations must preserve
         # the exact bytes and an explicit overwrite must change only case_id.
@@ -671,6 +722,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_evaluation_output_no_clobber_verified": True,
         "installed_evaluation_mismatch_exit_and_overwrite_verified": True,
         "installed_aggregate_only_report_verified": True,
+        "installed_structural_only_validation_verified": True,
         "installed_import_explicit_overwrite_verified": True,
         "installed_import_formats_verified": len(import_cases) - 1,
         "installed_import_commands_verified": len(import_cases),
