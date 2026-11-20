@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'">
+  <meta name="color-scheme" content="dark">
+  <title>Offline Policy Contrast — Synthetic Research Demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #0b1324;
+      color: #edf4ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 280px; }
+    main { max-width: 980px; margin: auto; padding: clamp(20px, 5vw, 54px) 20px 70px; }
+    .eyebrow {
+      display: inline-block; color: #9fcaff; letter-spacing: .09em;
+      font-size: .79rem; font-weight: 750; text-transform: uppercase;
+    }
+    h1 { font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1.12; margin: 12px 0 18px; }
+    h2 { font-size: 1.2rem; margin: 0 0 12px; }
+    p { max-width: 72ch; }
+    .lead { color: #c1d1e9; font-size: 1.08rem; }
+    .notice {
+      padding: 14px 18px; border-left: 4px solid #f8cc6a;
+      border-radius: 10px; background: #28251f; color: #ffedc0;
+    }
+    .grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px; margin-top: 28px;
+    }
+    .card { border: 1px solid #2e4365; background: #15223b; border-radius: 18px; padding: 23px; }
+    .card p { color: #c3d2e7; margin-bottom: 0; }
+    .verdict { font-size: 2rem; font-weight: 800; margin: 0 0 8px; }
+    .allow { color: #7ee8b7; }
+    .deny { color: #ffcf87; }
+    .metrics {
+      border: 1px solid #2e4365; border-radius: 18px;
+      background: #101d34; margin: 22px 0; padding: 22px;
+    }
+    .metrics dl {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 15px; margin: 16px 0 0;
+    }
+    .metrics dl div { padding: 14px; background: #1b2a44; border-radius: 11px; }
+    dt { color: #b7cbe5; font-size: .83rem; min-height: 3em; }
+    dd { margin: 6px 0 0; font-size: 1.8rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+    data { color: #f3f8ff; }
+    progress { display: block; margin: 14px 0; width: 100%; height: 14px; accent-color: #8bbaff; }
+    .notes { background: #15223b; padding: 22px; border-radius: 18px; }
+    code { color: #baddff; word-break: break-word; }
+    footer { color: #c2d0e4; margin-top: 28px; border-top: 1px solid #304467; padding-top: 20px; }
+    a { color: #a7d5ff; text-underline-offset: 4px; }
+    a:focus-visible { outline: 3px solid #f6d37a; outline-offset: 4px; }
+    @media (max-width: 650px) {
+      .grid { grid-template-columns: 1fr; }
+      .metrics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .card, .metrics, .notes { padding: 17px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <span class="eyebrow">Agent Trace Lab · Offline Research Demonstration</span>
+      <h1>Same recorded action. Different policy decisions.</h1>
+      <p class="lead">A fictional tool-use trace is evaluated against a permissive
+        allowlist and a task-scoped policy. The decisions differ because the
+        latter requires a matching action grant that the example does not contain.</p>
+      <p class="notice"><strong>Synthetic-only evidence.</strong>
+        This page is not a prompt-injection detector, not an authenticated record
+        of user consent, not a live security gateway, and not a measurement of
+        real-world protection accuracy. No tool actions are executed.</p>
+    </header>
+
+    <section class="grid" aria-label="Fictional policy decisions">
+      <article class="card">
+        <h2>Permissive allowlist</h2>
+        <p class="verdict allow">Allow</p>
+        <p>A recorded tool name is on the allowlist. This alone does not
+          show that a human requested the action.</p>
+      </article>
+      <article class="card">
+        <h2>Task-scoped policy</h2>
+        <p class="verdict deny">Deny</p>
+        <p>The fictional record has no matching task-bound action grant.
+          This illustrates a policy condition, not an independently proven authorization verdict.</p>
+      </article>
+    </section>
+
+    <section class="metrics" aria-labelledby="summary-title">
+      <h2 id="summary-title">Recorded policy decision changes</h2>
+      <p>Counts are from one self-authored comparison fixture, not an
+        external security dataset. The six counters below mirror the
+        offline CLI's <code>compare-policies --summary-only --format json</code> report.</p>
+      <label for="changes">Changed decisions in this fictional sample</label>
+      <progress id="changes" value="1" max="1">1 of 1</progress>
+      <dl>
+        <div><dt>Total recorded cases</dt><dd><data data-key="total_cases" value="1">1</data></dd></div>
+        <div><dt>Changed decisions</dt><dd><data data-key="changed" value="1">1</data></dd></div>
+        <div><dt>Allow to deny</dt><dd><data data-key="allow_to_deny" value="1">1</data></dd></div>
+        <div><dt>Deny to allow</dt><dd><data data-key="deny_to_allow" value="0">0</data></dd></div>
+        <div><dt>Unchanged decisions</dt><dd><data data-key="unchanged" value="0">0</data></dd></div>
+        <div><dt>Candidate ignored grant records</dt>
+          <dd><data data-key="candidate_ignored_grant_cases" value="0">0</data></dd></div>
+      </dl>
+    </section>
+
+    <section class="notes" aria-labelledby="limits-title">
+      <h2 id="limits-title">What this demonstration establishes</h2>
+      <p>The offline evaluator can compare <strong>two declared policies
+        on the same previously recorded case</strong> without contacting
+        a model or replaying an action. It cannot infer the real human's
+        intention from the action log alone.</p>
+      <p>The backing case and candidate policy are self-authored research
+        fixtures. Their expected label is not an independently authenticated
+        grant. The privacy-safe summary intentionally omits recipients,
+        case IDs, tool names and arguments.</p>
+    </section>
+
+    <footer>
+      <p>Local, standalone HTML/CSS. No scripts, external fonts, hosted
+        assets, analytics, APIs or network requests. This is a static
+        illustration of a recorded policy comparison, not an interactive
+        runtime agent or a published benchmark.</p>
+      <p>Read the <a href="../README.md">project README</a> for the
+        precise research scope, runnable CLI and reproducibility evidence.</p>
+    </footer>
+  </main>
+</body>
+</html>

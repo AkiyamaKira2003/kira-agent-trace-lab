@@ -188,6 +188,21 @@ See the [policy delta verification](docs/POLICY_CONTRAST_DEMO.md).
 To verify these exact outcomes from an isolated installed development wheel,
 run `python -m scripts.verify_installed_wheel --wheel-dir artifacts/qa-demo-wheel`
 after building the wheel as documented in the [demo instructions](docs/POLICY_CONTRAST_DEMO.md).
+
+### Offline visual research demonstration
+
+The [self-contained policy comparison demo](docs/policy-contrast-research-demo.html)
+illustrates the same fictional 1/1 changed decision in a read-only
+HTML/CSS layout. Download that HTML file and open it **locally** in
+your browser; a GitHub source-file view is not a live HTML preview.
+No JavaScript, remote assets, CDNs, analytics, private trace arguments
+or network requests are included. An automated test cross-checks
+all six displayed counters with the actual Python policy comparison
+engine, checks for forbidden active/external content and verifies
+visible research-only and unauthenticated-consent caveats. This is
+**not** a production KiraShop security integration, an independent
+benchmark or a live tool interceptor. Automated semantic/CSS checks
+are not a substitute for a full cross-browser visual audit.
 The smoke gate additionally checks the installed `agent-trace-lab` console
 launcher against module invocation on the same fictional inputs.
 Neither a fictional grant nor fixture-label agreement is authenticated user

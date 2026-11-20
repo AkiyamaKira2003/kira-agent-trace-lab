@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- ATL-004AN: add a standalone, self-authored offline HTML/CSS
+  research demo of the existing aggregate-only policy contrast.
+  Six counters are checked against actual Python comparison output;
+  no JS/network dependencies or original trace/recipient values.
+  Visible fictional-data limitations; not a live security showcase
+  or production KiraShop deployment.
 - ATL-004AM: add a separate offline `validate` command that
   reuses strict JSON and suite-schema validation without running
   policy evaluation or serializing case/tool/argument identifiers.
