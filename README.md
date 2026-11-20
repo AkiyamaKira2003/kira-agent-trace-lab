@@ -19,6 +19,13 @@ python -m unittest discover -s tests -v
 
 Exit **0** means all expected case labels matched, **1** means at least one mismatch, and **2** means invalid input/I/O failure. The same input yields the same report.
 
+Malformed inputs are rejected with bounded, [privacy-conscious schema
+diagnostics](docs/ERROR_DIAGNOSTIC_REDACTION.md). Unexpected JSON property
+names and invalid tool identifiers are **not echoed in validation error
+messages**. Normal reports and imported private trace files can still
+contain user-supplied identifiers and values; this is not a complete
+anonymization feature.
+
 The included synthetic example yields **8/8 labeled matches** with TP=5 and TN=3. **This is a smoke test, not an independently measured agent-safety score.**
 
 ### Two-policy demo: a deliberate mismatch and a task-scoped alternative

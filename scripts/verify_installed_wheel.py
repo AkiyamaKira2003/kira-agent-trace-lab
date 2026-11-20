@@ -152,6 +152,20 @@ def _execute(args: list[str], cwd: Path, env: dict[str, str], *, expected_exit: 
     return completed.stdout
 
 
+def verify_installed_diagnostic(args: list[str], cwd: Path,
+                                env: dict[str, str], private_marker: str) -> None:
+    """Check expected malformed-input rejection without emitting raw stderr."""
+    completed = subprocess.run(
+        args, cwd=str(cwd), env=env, capture_output=True, text=True,
+        encoding="utf-8", timeout=45, check=False,
+    )
+    if (completed.returncode != 2
+            or private_marker in completed.stderr
+            or private_marker in completed.stdout
+            or "unexpected_count=1" not in completed.stderr):
+        raise SuiteError("installed malformed-input diagnostic redaction failed")
+
+
 def run(wheel: Path) -> dict[str, Any]:
     wheel = wheel.resolve()
     names = wheel_members(wheel)
@@ -211,6 +225,22 @@ def run(wheel: Path) -> dict[str, Any]:
             [str(launcher), "evaluate", "demo_task_scoped.json", "--format", "json"],
             work, env))
         validate_console_equivalence(permissive, scoped, console_permissive, console_scoped)
+        # Synthetic untrusted property name must never surface in the
+        # installed module or console stderr. Keep this file temporary.
+        private_marker = "PRIVATE_SYNTHETIC_JSON_KEY_98765"
+        malformed = json.loads((work / "demo_permissive.json").read_text(encoding="utf-8"))
+        malformed["cases"][0][private_marker] = "synthetic private value"
+        (work / "malformed_demo.json").write_text(
+            json.dumps(malformed), encoding="utf-8"
+        )
+        verify_installed_diagnostic(
+            [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
+             "malformed_demo.json"], work, env, private_marker,
+        )
+        verify_installed_diagnostic(
+            [str(launcher), "evaluate", "malformed_demo.json"],
+            work, env, private_marker,
+        )
     return {
         "status": "ISOLATED_INSTALLED_WHEEL_SMOKE_PASS",
         "wheel_sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
@@ -222,6 +252,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "synthetic_task_scoped_real_grants_authenticated": False,
         "installed_console_launcher_verified": True,
         "installed_console_matches_module_results": True,
+        "installed_schema_diagnostics_redacted": True,
         "isolated_site_import_verified": True,
         "research_scripts_shipped_in_wheel": False,
         "authenticated_user_grants_verified": False,

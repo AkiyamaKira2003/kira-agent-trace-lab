@@ -2,6 +2,7 @@
 
 ## Unreleased (0.5.0.dev0 development; not in v0.4.0 wheel)
 
+- ATL-004P: redact untrusted duplicate/unknown JSON property names and tool identifiers from schema validation error messages, while preserving strict rejection and trusted field-location diagnostics; regression tests cover CLI stderr.
 - ATL-004O: verify the real pip-installed console launcher from an isolated wheel target on Windows/POSIX, comparing the permissive and task-scoped demo exit codes and JSON with module invocation; negative checks reject absent or divergent entrypoints.
 - ATL-004N: self-authored permissive-vs-task-scoped policy CLI contrast, including an intentional mismatch (exit 1), a five-case grant/replay demo, isolated installed-wheel verification and release-preflight limitations; no independently validated permission or safety metrics.
 - ATL-004M: optional two-build SOURCE_DATE_EPOCH wheel comparison, negative tests for differing bytes/unsafe inputs, and per-runner CI verification; no cross-platform identity claim.
