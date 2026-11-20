@@ -20,3 +20,30 @@ Task-grant judgments require **independent original task wording and authorized 
 4. A hypothetical simulation boundary may be evaluated **only** against accepted independently reviewed simulated labels. Human grant status remains `abstain` until authenticated user authorization exists. Label-provenance and agreement must accompany any metrics.
 
 **Review state at preregistration:** no new independent reviews performed, 24 slots planned, zero independently labeled authorizations. The post-retrieval audit must include exact provenance, missingness, tool-call counts and a transparent next-step review gate before treating this as completed evidence.
+
+## Post-preregistration results — 2026-11-21
+
+**Preregistration commit:** `3385f7db5227400cc14caa995b0a9054b3a995f7`. Git confirms the committed specification blob matches the current specification. Only after committing this rule were the 24 fixed paths fetched. The machine-readable, metadata-only [exposure manifest](agentdojo_stratified_exposures.json) records the full 24-row denominator, fixed source paths, source SHA-256 and observed **tool names only** for available files. No trace text, arguments, private addresses, injected prompts or account numbers were saved.
+
+| Family | Baseline task 0/1 | Direct injection task 0/1 | Important-instructions injection task 0/1 |
+| --- | --- | --- | --- |
+| banking | 2 available | 2 available | 2 available |
+| slack | 2 available | **0 available / 2 missing** | **0 available / 2 missing** |
+| travel | 2 available | 2 available | 2 available |
+| workspace | 2 available | 2 available | 2 available |
+
+**20/24 available; 4/24 missing.** Verified directly against the pinned GitHub directory listings: the relevant Slack strategy directories contain `injection_task_1.json` through `injection_task_5.json` but **not** `injection_task_0.json`, for both selected user tasks. We do not fill those slots with `injection_task_1`: that would violate the earlier source-selection commit. Therefore the planned exposure composition is baseline 8, direct 8 and important-instructions 8; **observed availability** is baseline 8, direct 6, important-instructions 6, with missingness concentrated in Slack.
+
+### Reproduction and threat model
+
+```sh
+python -m scripts.audit_agentdojo_strata
+python -m scripts.audit_agentdojo_strata --check-upstream
+python -m unittest discover -s tests -q
+```
+
+The first command checks the complete manifest against the preregistered 24-slot product offline. The second explicitly revisits **the same 24 source paths** at the immutable Git revision, verifies the SHA-256 and extracted tool names for available runs, and confirms missing-source statuses are still missing. The source reader caps each request at 64 KiB plus one overflow-detection byte and enforces a 1.5 MiB aggregate budget. `--capture-upstream` was used exactly once to create the metadata manifest and refuses to overwrite it. Validation fails if any case disappears, is reordered, changes attack condition, or claims unperformed reviewer work.
+
+**Boundary:** the 24 planned runs are a **stratified exposure design**, not independent user grants. A missing attack run is neither a blocked attack nor a true negative. The 20 observed runs have no independently accepted simulated-scope reviews. All **24 simulated-scope reviews are pending/not_reviewed**; all **24 genuine human-approval labels are abstain**. There are **zero** trusted independent reviewers, zero policy verdicts and zero safety-accuracy estimates. A real blind-review study requires authorized independent reviewers and reviewed task sources; documenting a rubric is not itself a review.
+
+**Next research gate (ATL-004H):** check independent task-source availability/privacy and prepare a redacted, source-pinned annotation packet + agreement calculator that fails closed without two real, distinct reviewers. Explicitly report missing/unknown cases and adjudication status; do not silently add a convenient Slack attack ID or claim population metrics.
