@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased (0.5.0.dev1 development; not in published v0.5.0.dev0)
+
+- ATL-004AC: begin a distinctly versioned post-prerelease development cycle.
+  Derive wheel/source-archive filenames from source metadata across QA and CI,
+  without rebuilding or replacing the already-published v0.5.0.dev0 release.
+  No change to the offline security evaluation contract or user-grant evidence.
+
 ## v0.5.0.dev0 — research-only prerelease published 2026-11-21 (not stable v0.5.0)
 
 This version is an explicitly limited research prerelease:
