@@ -217,6 +217,26 @@ launcher against module invocation on the same fictional inputs.
 Neither a fictional grant nor fixture-label agreement is authenticated user
 consent or evidence of real-world protection.
 
+For **repeatable real-Chrome layout QA** from a Git checkout, use
+Chrome and the optional *developer-only* Python package
+websockets 13.x (the offline evaluator's wheel still has **zero
+additional runtime requirements**). Run:
+
+    python scripts/qa_offline_policy_demo.py
+
+The runner uses one isolated headless Chrome profile, a loopback-only
+HTTP server serving **only this synthetic HTML page**, and checks
+desktop 1600×900 plus mobile 375×812 and 320×700. It validates
+actual Allow/Deny colors, zero horizontal overflow, no scripts or
+external resources, visible caveats and six fixture-grounded counts.
+Each run saves PNGs and JSON evidence to a fresh ignored subfolder
+under artifacts/browser-visual-qa, then terminates the temporary
+browser and server. It never touches existing user tabs or desktop
+mouse/keyboard controls. Supply --chrome PATH when auto-detection
+fails. Missing prerequisites yield NOT_VERIFIED rather than a false
+PASS. This is Chrome-only QA, not cross-browser certification or
+agent-security evaluation.
+
 ### External counterexample (deliberate mismatch)
 
 An attributed two-case [AgentDrift external case study](docs/EXTERNAL_CASE_STUDY.md) demonstrates that tool-name allowlists **cannot infer user-task authorization**. The third-party, independently labeled *synthetic* corpus includes a hijacked email-forward/delete sequence. With an intentionally permissive policy, this evaluator still **allows** it: the example exits **1**, exposing the expected *semantic coverage gap* rather than hiding it behind a perfect synthetic score.

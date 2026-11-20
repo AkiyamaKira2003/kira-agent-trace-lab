@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- ATL-004AQ: make the previously validated local Chrome visual QA
+  reproducible through an optional source-only runner: one isolated
+  Chrome, loopback HTTP serving only the fictional page, three
+  screenshots, strict color/count/overflow/privacy checks, unique
+  ignored evidence and cleanup. Missing optional prerequisites report
+  NOT_VERIFIED. No runtime dependency or security-effectiveness claims.
 - ATL-004AO: real Chrome desktop/mobile visual QA found the verdict
   colors were overridden by the generic card-paragraph rule;
   more-specific Allow/Deny selectors preserve green/amber distinction.
