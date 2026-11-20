@@ -2,6 +2,7 @@
 
 ## Unreleased (0.5.0.dev0 development; not in v0.4.0 wheel)
 
+- ATL-004U: make the source-distribution archive minimal and MIT-only, excluding tests that cannot run without repository fixtures and source-only research material; add fail-closed tar inventory, license, source-bytes, metadata, privacy and installability CI checks with six new tests.
 - ATL-004T: add repository/documentation/issue links to wheel project metadata and fail-closed release metadata verification in isolated wheel smoke; record a source-linked v0.5 research release-gate matrix with explicit authorization, representative benchmark and qualified showcase HOLD statuses.
 - ATL-004S: make first-time trace-import output publication failure-atomic via same-directory private temporary file and exclusive hardlink; preserve no-clobber semantics and add interrupted-write, link and replace fault-injection tests.
 - ATL-004R: prevent silent replacement of pre-existing trace-import output files; require explicit --overwrite for atomic regular-file replacement and reject symlink outputs, with cross-format and hardlink safety regression tests.

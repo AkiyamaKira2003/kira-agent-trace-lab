@@ -44,5 +44,12 @@ jobs:
         run: python -m pip wheel --no-deps --wheel-dir artifacts/ci-wheel .
       - name: Verify isolated wheel import, offline CLI, and package boundary
         run: python -m scripts.verify_installed_wheel --wheel-dir artifacts/ci-wheel
+      - name: Verify source archive and wheel rebuilt from that archive
+        run: |
+          python -m pip install --disable-pip-version-check build==1.2.2.post1
+          python -m build --sdist --outdir artifacts/ci-sdist .
+          python -m scripts.verify_source_sdist --sdist-dir artifacts/ci-sdist
+          python -m pip wheel --no-deps --wheel-dir artifacts/ci-sdist-wheel artifacts/ci-sdist/kira_agent_trace_lab-0.5.0.dev0.tar.gz
+          python -m scripts.verify_installed_wheel --wheel-dir artifacts/ci-sdist-wheel
       - name: Verify two source-date-pinned wheel builds match on this runner
         run: python -m scripts.verify_reproducible_wheel
