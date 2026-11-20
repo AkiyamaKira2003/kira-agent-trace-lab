@@ -65,6 +65,10 @@ def main(argv: list[str] | None = None) -> int:
     evaluate.add_argument("--format", choices=("text", "json"), default="text")
     evaluate.add_argument("--output", type=Path, help="write complete report to a NEW file instead of stdout")
     evaluate.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular report file")
+    evaluate.add_argument(
+        "--summary-only", action="store_true",
+        help="show only caller-labeled aggregate counts; omit case IDs, tools and violations",
+    )
     compare = subcommands.add_parser(
         "compare-policies", help="compare policy-only decision deltas on identical offline trace cases",
     )
@@ -199,7 +203,32 @@ def main(argv: list[str] | None = None) -> int:
         if args.output and args.suite.resolve() == args.output.resolve():
             raise SuiteError("refusing to overwrite the input suite")
         report = evaluate_suite(load_suite(args.suite))
-        if args.format == "json":
+        if args.summary_only:
+            # Deliberately omit case records and derived accuracy/precision/
+            # recall to avoid misrepresenting caller labels as independent
+            # security ground truth in a shareable aggregate-only report.
+            totals = report["summary"]
+            counts = totals["confusion"]
+            if args.format == "json":
+                display = json.dumps({
+                    "schema_version": report["schema_version"],
+                    "label_basis": "caller_supplied_not_independently_verified",
+                    "verified_real_world_security_metrics": False,
+                    "summary": {
+                        "total_cases": totals["total"],
+                        "matched_fixture_labels": totals["matched"],
+                        "mismatched_fixture_labels": totals["total"] - totals["matched"],
+                        "confusion": counts,
+                    },
+                }, indent=2, ensure_ascii=False) + "\n"
+            else:
+                display = (
+                    f"Caller-supplied fixture labels matched: {totals['matched']}/{totals['total']}\n"
+                    f"Caller-label confusion (deny=positive): TP={counts['tp']} "
+                    f"TN={counts['tn']} FP={counts['fp']} FN={counts['fn']}\n"
+                    "No independently verified real-world security metrics.\n"
+                )
+        elif args.format == "json":
             display = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
         else:
             counts = report["summary"]["confusion"]
