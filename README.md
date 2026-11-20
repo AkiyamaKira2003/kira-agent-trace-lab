@@ -29,6 +29,20 @@ python -m agent_trace_lab evaluate examples/agentdrift_counterexamples.json
 
 The two adapted data records are **CC BY 4.0**, not MIT; source, authors, license and modifications are recorded in the case study. This two-record sample is **not** a population estimate or a representative attack-detection benchmark.
 
+## Task-bound grant matching (v0.3, opt-in)
+
+Schema **1.1** adds an optional task-authorization audit for selected high-impact tools while preserving schema **1.0**. An auditor supplies independent exact-action grant records for a case; the checker rejects guarded calls without a matching, unconsumed grant.
+
+```sh
+python -m agent_trace_lab evaluate examples/task_grants.json
+```
+
+The 9-case, **self-authored** example covers a legitimate forward, an unexpected recipient, missing grant, unauthorized deletion, duplicate execution, separate approvals for repeated calls, ordinary search, approved deletion and extra arguments. Test outcomes are fixture conformance, **not independently measured permission accuracy**.
+
+In a 1.1 policy, `task_guarded_tools` names must already be in the tool allowlist. Each 1.1 case can include `task_authorization` with a `task_id` and `grants`. Each grant includes a unique `grant_id`, opaque `source_ref` evidence reference, a `tool` and the exact JSON `arguments`. Object field ordering is ignored, but argument values, types, lists and additional fields must match; each grant is consumable once per recorded trace. Missing grants deny guarded calls by default and do not loosen pre-existing policy restrictions.
+
+**Security boundary:** this offline evaluator **does not authenticate the user, validate source_ref or prove that a grant was genuinely issued**. A malicious party could fabricate a matching grant if permitted to author the suite. A separate trusted system must establish and protect actual approval evidence. Never use these evaluation results as authorization to execute real tools. See the [design and threat model](docs/TASK_AUTHORIZATION_DESIGN.md).
+
 ## Import OpenTelemetry tool traces (v0.2)
 
 The converter accepts a saved **OTLP/HTTP JSON** export using OpenTelemetry's GenAI execute-tool span attributes: `gen_ai.operation.name=execute_tool`, `gen_ai.tool.name`, and opt-in `gen_ai.tool.call.arguments`. Supported argument formats are JSON-object strings or a limited structured OTLP `kvlistValue`.
@@ -40,6 +54,8 @@ python -m agent_trace_lab evaluate artifacts/imported.json
 
 The **expected label is supplied by the person running the import**. No ground truth is inferred from the trace. Import refuses missing arguments, invalid data, unrelated trace IDs and missing timestamps. Events within one trace are ordered by `startTimeUnixNano`; simultaneous operations may still be causally unordered. The converter cannot infer which human task those spans belong to.
 
+When importing with a schema-1.1 policy, the resulting suite also uses 1.1 but contains **no fabricated task authorization**. Guarded actions therefore deny unless a trusted source supplies grants separately.
+
 **Privacy:** Imported suites retain tool argument values, which can contain secrets and PII. The CLI makes no external requests and reports omit argument values, but **never commit imported real-world suites without reviewing/redacting them**. Use `artifacts/` for locally generated examples (ignored by Git).
 
 This is a narrow OTLP JSON import, not support for binary protobuf, all exporters, all semantic-convention versions or model-specific logging formats.
@@ -48,7 +64,7 @@ This is a narrow OTLP JSON import, not support for binary protobuf, all exporter
 
 An input JSON suite has:
 
-- `schema_version: "1.0"`, one `policy` and an array of labeled `cases`.
+- `schema_version: "1.0"` (legacy) or `"1.1"` (opt-in task grants), one `policy` and an array of labeled `cases`.
 - Policy `max_actions` and exact tool allowlist `tools`, each optionally constraining `path_args/allowed_roots` or `url_args/allowed_hosts`.
 - Each case has a unique `id`, `expected` label (`allow` or `deny`), and `trace` of `{"tool":"...","arguments":{...}}` events.
 

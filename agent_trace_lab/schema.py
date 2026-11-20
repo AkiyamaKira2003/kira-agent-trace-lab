@@ -62,12 +62,73 @@ def _canonical_path(path: str) -> bool:
     ) or path == "/"
 
 
+def _exact_arguments(value: Any, location: str) -> str:
+    """Stable JSON encoding that distinguishes bool from int and ignores object key order."""
+    if not isinstance(value, dict) or len(value) > 100:
+        raise SuiteError(f"{location} must be a JSON arguments object (max 100 keys)")
+    def verify_node(node: Any, depth: int) -> None:
+        if depth > 32:
+            raise SuiteError(f"{location} contains excessively nested values")
+        if isinstance(node, dict):
+            if len(node) > 100 or any(type(key) is not str for key in node):
+                raise SuiteError(f"{location} contains invalid JSON object keys")
+            for nested in node.values():
+                verify_node(nested, depth + 1)
+        elif isinstance(node, list):
+            if len(node) > 1000:
+                raise SuiteError(f"{location} contains an oversized list")
+            for nested in node:
+                verify_node(nested, depth + 1)
+        elif type(node) not in (str, int, float, bool, type(None)):
+            raise SuiteError(f"{location} contains unsupported JSON values")
+
+    verify_node(value, 0)
+    try:
+        return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    except (TypeError, ValueError, RecursionError, OverflowError) as exc:
+        raise SuiteError(f"{location} must contain finite, serializable JSON values") from exc
+
+
+def _validate_task_authorization(case: dict[str, Any], location: str, guarded: set[str]) -> None:
+    authorization = case.get("task_authorization")
+    if authorization is None:
+        if "task_authorization" in case:
+            raise SuiteError(f"{location}.task_authorization must be an object when provided")
+        return  # explicit absence means no grants; guarded calls will be denied
+    authorization = _keys(authorization, f"{location}.task_authorization", {"task_id", "grants"})
+    task_id = authorization["task_id"]
+    if not isinstance(task_id, str) or not _IDENTIFIER.fullmatch(task_id):
+        raise SuiteError(f"{location}.task_authorization.task_id is invalid")
+    grants = authorization["grants"]
+    if not isinstance(grants, list) or len(grants) > 100:
+        raise SuiteError(f"{location}.task_authorization.grants must be a list (max 100)")
+    grant_ids: set[str] = set()
+    for index, grant in enumerate(grants):
+        where = f"{location}.task_authorization.grants[{index}]"
+        grant = _keys(grant, where, {"grant_id", "source_ref", "tool", "arguments"})
+        grant_id = grant["grant_id"]
+        if not isinstance(grant_id, str) or not _IDENTIFIER.fullmatch(grant_id) or grant_id in grant_ids:
+            raise SuiteError(f"{where}.grant_id must be a distinct identifier")
+        grant_ids.add(grant_id)
+        source_ref = grant["source_ref"]
+        if (
+            not isinstance(source_ref, str) or not 1 <= len(source_ref) <= 240
+            or not source_ref.isprintable() or source_ref != source_ref.strip()
+        ):
+            raise SuiteError(f"{where}.source_ref must be a nonempty printable external evidence reference")
+        if not isinstance(grant["tool"], str) or grant["tool"] not in guarded:
+            raise SuiteError(f"{where}.tool must be one of the guarded tools")
+        _exact_arguments(grant["arguments"], f"{where}.arguments")
+
+
 def validate_suite(suite: Any) -> dict[str, Any]:
     suite = _keys(suite, "suite", {"schema_version", "policy", "cases"})
-    if suite["schema_version"] != "1.0":
-        raise SuiteError("unsupported schema_version (expected 1.0)")
+    version = suite["schema_version"]
+    if version not in ("1.0", "1.1"):
+        raise SuiteError("unsupported schema_version (expected 1.0 or 1.1)")
 
-    policy = _keys(suite["policy"], "policy", {"tools", "max_actions"})
+    policy_required = {"tools", "max_actions"} | ({"task_guarded_tools"} if version == "1.1" else set())
+    policy = _keys(suite["policy"], "policy", policy_required)
     limit = policy["max_actions"]
     if type(limit) is not int or not 1 <= limit <= 1000:
         raise SuiteError("policy.max_actions must be an integer from 1 to 1000")
@@ -96,6 +157,13 @@ def validate_suite(suite: Any) -> dict[str, Any]:
         if any(host != host.lower() or not _HOST.fullmatch(host) or ".." in host for host in hosts):
             raise SuiteError(f"{name}: allowed_hosts must be exact lower-case DNS names")
 
+    guarded: set[str] = set()
+    if version == "1.1":
+        guarded_list = _strings(policy["task_guarded_tools"], "policy.task_guarded_tools", allow_empty=False)
+        if any(tool not in tools for tool in guarded_list):
+            raise SuiteError("policy.task_guarded_tools must reference allowlisted tools")
+        guarded = set(guarded_list)
+
     cases = suite["cases"]
     if not isinstance(cases, list) or not 1 <= len(cases) <= MAX_CASES:
         raise SuiteError(f"cases must contain 1..{MAX_CASES} entries")
@@ -103,7 +171,8 @@ def validate_suite(suite: Any) -> dict[str, Any]:
     total_events = 0
     for index, case in enumerate(cases):
         location = f"cases[{index}]"
-        case = _keys(case, location, {"id", "expected", "trace"}, {"description"})
+        optional = {"description", "task_authorization"} if version == "1.1" else {"description"}
+        case = _keys(case, location, {"id", "expected", "trace"}, optional)
         case_id = case["id"]
         if not isinstance(case_id, str) or not _IDENTIFIER.fullmatch(case_id) or case_id in ids:
             raise SuiteError(f"{location}.id must be unique and use letters, digits, _ . -")
@@ -128,6 +197,10 @@ def validate_suite(suite: Any) -> dict[str, Any]:
                 raise SuiteError(f"{where}.arguments must be a JSON object (max 100 keys)")
             if any(not isinstance(k, str) or len(k) > 80 for k in arguments):
                 raise SuiteError(f"{where}.arguments has invalid keys")
+            if version == "1.1":
+                _exact_arguments(arguments, f"{where}.arguments")
+        if version == "1.1":
+            _validate_task_authorization(case, location, guarded)
     return suite
 
 

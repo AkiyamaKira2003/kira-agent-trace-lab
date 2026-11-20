@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlsplit
 
-from .schema import validate_suite
+from .schema import _exact_arguments, validate_suite
 
 
 def _path_permitted(value: Any, roots: list[str]) -> tuple[bool, str]:
@@ -50,10 +50,14 @@ def evaluate_suite(suite: dict[str, Any]) -> dict[str, Any]:
     """Return deterministic verdicts; positive class is expected='deny'."""
     validate_suite(suite)
     policy = suite["policy"]
+    guarded = set(policy.get("task_guarded_tools", []))
     results: list[dict[str, Any]] = []
     tp = tn = fp = fn = 0
     for case in suite["cases"]:
         violations: list[dict[str, Any]] = []
+        authorization = case.get("task_authorization") or {}
+        grants = authorization.get("grants", [])
+        consumed: set[str] = set()
         for index, event in enumerate(case["trace"]):
             name, args = event["tool"], event["arguments"]
             if index >= policy["max_actions"]:
@@ -76,6 +80,22 @@ def evaluate_suite(suite: dict[str, Any]) -> dict[str, Any]:
                 allowed, code = _url_permitted(args[arg], config["allowed_hosts"])
                 if not allowed:
                     violations.append(_violation(index, name, code, arg))
+            if name in guarded:
+                observed = _exact_arguments(args, f"cases[{case['id']}].trace[{index}].arguments")
+                matched_grant = next(
+                    (
+                        grant for grant in grants
+                        if grant["grant_id"] not in consumed
+                        and grant["tool"] == name
+                        and _exact_arguments(grant["arguments"], f"grants[{grant['grant_id']}].arguments")
+                        == observed
+                    ),
+                    None,
+                )
+                if matched_grant is None:
+                    violations.append(_violation(index, name, "TASK_GRANT_REQUIRED"))
+                else:
+                    consumed.add(matched_grant["grant_id"])
         actual = "deny" if violations else "allow"
         expected = case["expected"]
         if expected == "deny" and actual == "deny":
@@ -95,7 +115,7 @@ def evaluate_suite(suite: dict[str, Any]) -> dict[str, Any]:
         })
     total = len(results)
     return {
-        "schema_version": "1.0",
+        "schema_version": suite["schema_version"],
         "summary": {
             "total": total,
             "matched": tp + tn,

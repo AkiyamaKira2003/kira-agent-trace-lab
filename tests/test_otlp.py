@@ -117,6 +117,20 @@ class OtlpTests(unittest.TestCase):
             bad = subprocess.run(overwrite, cwd=ROOT, capture_output=True, text=True)
             self.assertEqual(bad.returncode, 2)
 
+    def test_import_with_task_guards_has_no_assumed_grants(self) -> None:
+        policy = load_suite(ROOT / "examples" / "task_grants.json")["policy"]
+        export = copy.deepcopy(self.export)
+        export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"][1]["value"]["stringValue"] = "forward_email"
+        export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"][2]["value"]["stringValue"] = (
+            '{"to":"alice@example.org","ids":["msg_1234"]}'
+        )
+        suite = import_otlp(export, policy=policy, case_id="no_user_grant", expected="deny")
+        self.assertEqual(suite["schema_version"], "1.1")
+        self.assertNotIn("task_authorization", suite["cases"][0])
+        report = evaluate_suite(suite)
+        self.assertEqual(report["cases"][0]["actual"], "deny")
+        self.assertEqual(report["cases"][0]["violations"][0]["code"], "TASK_GRANT_REQUIRED")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -138,7 +138,7 @@ def import_otlp(
     # Ties retain exporter order. Concurrent execution cannot be fully ordered.
     trace = [event for _, event in sorted(collected, key=lambda item: item[0])]
     suite = {
-        "schema_version": "1.0",
+        "schema_version": "1.1" if "task_guarded_tools" in policy else "1.0",
         "policy": policy,
         "cases": [{"id": case_id, "expected": expected, "trace": trace}],
     }

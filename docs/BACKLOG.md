@@ -17,7 +17,7 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-007 | NOT_STARTED | Qualified portfolio showcase | ATL-006 | Actual demonstration and evidence, no KiraShop regression | 20m |
 | ATL-008 | DONE | Import read-only OpenTelemetry execute_tool spans | ATL-003 | #1 closed by merged PR #2; single-trace parsing, missing-argument rejection; 29 unit tests and PR CI 4/4 PASS | 25m |
 | ATL-004A | DONE | Attribute external AgentDrift *synthetic* examples, expose semantic policy gap | ATL-003 | PR #4 merged, issue #3 closed; 31 tests, GitHub CI 4/4 PASS | 25m |
-| ATL-009 | NOT_STARTED | Design task-bound authorization policy and negative controls | ATL-004A | Issue #5; written contract distinguishing legitimate forwarding from hijacked forwarding without inferred user consent | 20m |
+| ATL-009 | IN_PROGRESS | Opt-in schema 1.1 with deterministic task-bound grants and negative controls | ATL-004A | Issue #5; ADR + implementation; local tests 49/49 PASS; GitHub CI/release pending | 20m |
 
 Local baseline **2026-11-20**: Python 3.12.10, **11 unit tests passed**, **8/8 example labels matched**; no claim of real-agent benchmark performance.
 
@@ -39,3 +39,13 @@ AgentDrift is a **third-party synthetic dataset**, not authentic production tele
 Released version **v0.2.0** remains available at `https://github.com/AkiyamaKira2003/kira-agent-trace-lab/releases/tag/v0.2.0` with verified Python wheel (SHA256 `dd2382604b68c609be4bdd0edf84cf3239ecb0bc4638b0bebfd24f6062ed4e1a`). The post-release case-study commit is on `main` but is not part of the tagged v0.2.0 wheel.
 
 **NEXT_ACTION:** [Issue #5](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/5), ATL-009 task 1 — design explicit **user-task authorization inputs**, including a legitimate email-forward case, an unauthorized forwarding case, and deny-by-default behavior when user-grant evidence is missing. Use Cedar and OPA's documented authorization concepts as references, not as dependencies. Do not let an LLM guess permissions; require externally supplied authorization facts. Then implement in a separate small task and verify compatibility against the 31-test baseline. Continue hunting for consented authentic tool traces; do not call the two AgentDrift samples a statistically representative benchmark.
+
+### Fixed-loop checkpoint — 2026-11-20 / ATL-009
+
+- Verified machine KIRAA and KPC Core; existing repository, no KPCenter state and no KPCenter registration; do **not** initialize governance.
+- Starting baseline: clean `main` at `930c1be99e10f196e2ea15916a1446bd18ff804b`, GitHub CI success, 31/31 tests pass.
+- Current feature branch: `feat/task-bound-authorization`, new docs/TASK_AUTHORIZATION_DESIGN.md.
+- ATL-009a design complete: compare blanket blocking, model-inferred authorization, full Cedar/OPA integration and narrow exact-action grants. Chose grant matching plus explicit external trust boundary.
+- ATL-009b local implementation: 1.1 schema + optional case grants, deny on missing grant, exact JSON matching, unique grant IDs, single-use consumption, no grant override for other restrictions, legacy 1.0 preserved; 49/49 unit tests PASS, 9/9 synthetic grant fixture labels match.
+- **Important limitation:** source_ref is an unauthenticated reference. This evaluator cannot prove user approval, and does not authenticate caller, origin, temporal validity, or task identity. No real-agent benchmark claims.
+- **NEXT_ACTION:** finish package/CLI smoke, Git diff and credential scan, push branch and open PR; verify GitHub Actions Windows/Linux before merging. Then re-run merged-main tests and issue a v0.3.0 release only if package and CI pass. Continue ATL-004 real-world research independently after shipping.

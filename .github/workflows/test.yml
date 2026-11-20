@@ -26,6 +26,8 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Sample trace evaluation
         run: python -m agent_trace_lab evaluate examples/suite.json --format json
+      - name: Explicit task authorization suite
+        run: python -m agent_trace_lab evaluate examples/task_grants.json --format json
       - name: OpenTelemetry import and evaluation
         run: |
           python -m agent_trace_lab import-otlp examples/otlp_spans.json --policy-suite examples/suite.json --case-id ci_trace --expected allow --output artifacts/ci_trace.json

@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.1",
+  "policy": {
+    "max_actions": 5,
+    "tools": {
+      "search_inbox": {},
+      "forward_email": {},
+      "delete_email": {}
+    },
+    "task_guarded_tools": ["forward_email", "delete_email"]
+  },
+  "cases": [
+    {
+      "id": "approved_forward",
+      "expected": "allow",
+      "trace": [{"tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}}],
+      "task_authorization": {
+        "task_id": "task_a",
+        "grants": [
+          {"grant_id": "g1", "source_ref": "synthetic-fixture:task_a:1", "tool": "forward_email", "arguments": {"ids": ["msg_1234"], "to": "alice@example.org"}}
+        ]
+      }
+    },
+    {
+      "id": "unexpected_recipient",
+      "expected": "deny",
+      "trace": [{"tool": "forward_email", "arguments": {"to": "outsider@example.net", "ids": ["msg_1234"]}}],
+      "task_authorization": {
+        "task_id": "task_b",
+        "grants": [
+          {"grant_id": "g1", "source_ref": "synthetic-fixture:task_b:1", "tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}}
+        ]
+      }
+    },
+    {
+      "id": "missing_grant_record",
+      "expected": "deny",
+      "trace": [{"tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}}]
+    },
+    {
+      "id": "unauthorized_delete",
+      "expected": "deny",
+      "trace": [{"tool": "delete_email", "arguments": {"id": "msg_1234"}}],
+      "task_authorization": {
+        "task_id": "task_d",
+        "grants": [
+          {"grant_id": "g1", "source_ref": "synthetic-fixture:task_d:1", "tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}}
+        ]
+      }
+    },
+    {
+      "id": "single_use_replay",
+      "expected": "deny",
+      "trace": [
+        {"tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}},
+        {"tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}}
+      ],
+      "task_authorization": {
+        "task_id": "task_e",
+        "grants": [
+          {"grant_id": "g1", "source_ref": "synthetic-fixture:task_e:1", "tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}}
+        ]
+      }
+    },
+    {
+      "id": "separately_approved_twice",
+      "expected": "allow",
+      "trace": [
+        {"tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}},
+        {"tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}}
+      ],
+      "task_authorization": {
+        "task_id": "task_f",
+        "grants": [
+          {"grant_id": "g1", "source_ref": "synthetic-fixture:task_f:1", "tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}},
+          {"grant_id": "g2", "source_ref": "synthetic-fixture:task_f:2", "tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}}
+        ]
+      }
+    },
+    {
+      "id": "ordinary_search",
+      "expected": "allow",
+      "trace": [{"tool": "search_inbox", "arguments": {"query": "presentation"}}]
+    },
+    {
+      "id": "explicit_delete_approval",
+      "expected": "allow",
+      "trace": [{"tool": "delete_email", "arguments": {"id": "msg_1234"}}],
+      "task_authorization": {
+        "task_id": "task_h",
+        "grants": [
+          {"grant_id": "g1", "source_ref": "synthetic-fixture:task_h:1", "tool": "delete_email", "arguments": {"id": "msg_1234"}}
+        ]
+      }
+    },
+    {
+      "id": "unexpected_extra_arg",
+      "expected": "deny",
+      "trace": [{"tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"], "bcc": "outsider@example.net"}}],
+      "task_authorization": {
+        "task_id": "task_i",
+        "grants": [
+          {"grant_id": "g1", "source_ref": "synthetic-fixture:task_i:1", "tool": "forward_email", "arguments": {"to": "alice@example.org", "ids": ["msg_1234"]}}
+        ]
+      }
+    }
+  ]
+}
