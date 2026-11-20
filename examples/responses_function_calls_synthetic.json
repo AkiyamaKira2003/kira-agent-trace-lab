@@ -1,0 +1,34 @@
+{
+  "id": "resp_self_authored_fixture",
+  "status": "completed",
+  "output": [
+    {
+      "id": "rs_synthetic",
+      "type": "reasoning",
+      "summary": []
+    },
+    {
+      "id": "fc_synthetic_search",
+      "type": "function_call",
+      "status": "completed",
+      "call_id": "call_synthetic_01",
+      "name": "docs.search",
+      "arguments": "{\"query\":\"README\"}"
+    },
+    {
+      "id": "msg_synthetic",
+      "type": "message",
+      "status": "completed",
+      "role": "assistant",
+      "content": []
+    },
+    {
+      "id": "fc_synthetic_read",
+      "type": "function_call",
+      "status": "completed",
+      "call_id": "call_synthetic_02",
+      "name": "files.read",
+      "arguments": "{\"path\":\"/workspace/docs/guide.md\"}"
+    }
+  ]
+}

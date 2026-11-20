@@ -24,7 +24,7 @@ FORBIDDEN_PARTS = frozenset({
 })
 SOURCE_MODULES = (
     "__init__.py", "__main__.py", "agentdojo.py", "cli.py",
-    "engine.py", "otlp.py", "schema.py", "swe.py",
+    "engine.py", "otlp.py", "responses.py", "schema.py", "swe.py",
 )
 REQUIRED_FILES = frozenset({
     "LICENSE", "MANIFEST.in", "README.md", "pyproject.toml",
