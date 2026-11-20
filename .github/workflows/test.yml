@@ -32,3 +32,7 @@ jobs:
         run: |
           python -m agent_trace_lab import-otlp examples/otlp_spans.json --policy-suite examples/suite.json --case-id ci_trace --expected allow --output artifacts/ci_trace.json
           python -m agent_trace_lab evaluate artifacts/ci_trace.json
+      - name: Synthetic SWE tool-call import and evaluation
+        run: |
+          python -m agent_trace_lab import-swe examples/swe_recorded_row_synthetic.json --policy-suite examples/swe_structural_policy.json --case-id ci_swe_trace --expected allow --output artifacts/ci_swe_trace.json
+          python -m agent_trace_lab evaluate artifacts/ci_swe_trace.json

@@ -1,0 +1,58 @@
+{
+  "instance_id": "synthetic_example_issue_001",
+  "resolved": 1,
+  "repo": "example/example",
+  "license": "MIT",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Synthetic test-only system message. Not carried into the suite.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "Synthetic request; not user authorization evidence.",
+      "tool_calls": null
+    },
+    {
+      "role": "assistant",
+      "content": "This reasoning must not be imported.",
+      "tool_calls": [
+        {
+          "id": "call_001",
+          "type": "function",
+          "function": {
+            "name": "bash",
+            "arguments": "{\"command\":\"git status --short\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "Mock observation that must not enter the output.",
+      "tool_calls": null
+    },
+    {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "id": "call_002",
+          "type": "function",
+          "function": {
+            "name": "str_replace_editor",
+            "arguments": "{\"command\":\"view\",\"path\":\"/workspace/README.md\"}"
+          }
+        },
+        {
+          "id": "call_003",
+          "type": "function",
+          "function": {
+            "name": "submit",
+            "arguments": "{}"
+          }
+        }
+      ]
+    }
+  ]
+}
