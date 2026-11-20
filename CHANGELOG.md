@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased (0.5.0.dev1 development; not in published v0.5.0.dev0)
+## v0.5.0.dev1 — research-only prerelease candidate (not stable v0.5.0)
+
+This is a limited offline research prerelease **candidate**, not
+a live-agent security product or independently validated protection
+rate. See [dev1 release notes](docs/RELEASE_NOTES_V050_DEV1.md)
+and [release gate](docs/RELEASE_GATE_004AI.md).
 
 - ATL-004AH: redact private filesystem path components and raw JSON
   parser exception text in CLI read/import error diagnostics while
