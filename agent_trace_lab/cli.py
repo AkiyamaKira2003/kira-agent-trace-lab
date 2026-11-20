@@ -69,6 +69,13 @@ def main(argv: list[str] | None = None) -> int:
         "--summary-only", action="store_true",
         help="show only caller-labeled aggregate counts; omit case IDs, tools and violations",
     )
+    validate = subcommands.add_parser(
+        "validate", help="validate one local suite structurally, without policy evaluation or tool execution",
+    )
+    validate.add_argument("suite", type=Path, help="saved local suite file (may contain private trace arguments)")
+    validate.add_argument("--format", choices=("text", "json"), default="text")
+    validate.add_argument("--output", type=Path, help="write a structural-only report to a NEW file")
+    validate.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular report file")
     compare = subcommands.add_parser(
         "compare-policies", help="compare policy-only decision deltas on identical offline trace cases",
     )
@@ -126,6 +133,40 @@ def main(argv: list[str] | None = None) -> int:
     sequence.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output")
     args = parser.parse_args(argv)
     try:
+        if args.command == "validate":
+            if args.output and args.suite.resolve() == args.output.resolve():
+                raise SuiteError("refusing to overwrite input suite")
+            suite = load_suite(args.suite)  # strict parsing only: never evaluate tool policy
+            metadata = {
+                "schema_version": suite["schema_version"],
+                "case_count": len(suite["cases"]),
+                "recorded_call_count": sum(len(case["trace"]) for case in suite["cases"]),
+                "policy_tool_count": len(suite["policy"]["tools"]),
+                "guarded_tool_count": len(suite["policy"].get("task_guarded_tools", [])),
+                "evaluation_performed": False,
+            }
+            if args.format == "json":
+                display = json.dumps(metadata, indent=2, ensure_ascii=False) + "\n"
+            else:
+                display = (
+                    f"Valid suite schema {metadata['schema_version']}; "
+                    f"cases={metadata['case_count']} "
+                    f"recorded_calls={metadata['recorded_call_count']} "
+                    f"policy_tools={metadata['policy_tool_count']} "
+                    f"guarded_tools={metadata['guarded_tool_count']}. "
+                    "No policy evaluation or tool execution.\n"
+                )
+            if args.output:
+                try:
+                    _write_complete_output(
+                        args.output, display, overwrite=args.overwrite,
+                        prefix=".agent-trace-validate-",
+                    )
+                except OSError as exc:
+                    raise SuiteError("unable to safely write structural validation report") from exc
+            else:
+                print(display, end="")
+            return 0
         if args.command == "import-responses-sequence":
             if args.output.resolve() in (args.responses.resolve(), args.policy_suite.resolve()):
                 raise SuiteError("refusing to overwrite the response sequence or policy suite")

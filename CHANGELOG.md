@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- ATL-004AM: add a separate offline `validate` command that
+  reuses strict JSON and suite-schema validation without running
+  policy evaluation or serializing case/tool/argument identifiers.
+  JSON/text emit only structural counters, with optional atomic,
+  no-clobber `--output`, preserving source and explicit overwrite.
+  No independent authorization or safety metrics implied.
 - ATL-004AL: opt-in compare-policies --summary-only emits just
   aggregate decision counters (JSON summary object or one text line),
   also with atomic --output and no-clobber semantics. Per-case IDs,
