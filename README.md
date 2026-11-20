@@ -10,6 +10,14 @@ Python 3.10+, no runtime dependencies, network access or model API keys required
 
 Clone the [source repository](https://github.com/AkiyamaKira2003/kira-agent-trace-lab) and run these commands from its root to use the included examples. Alternatively, install the wheel attached to the [v0.4.0 GitHub release](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/releases/tag/v0.4.0) with `python -m pip install ./kira_agent_trace_lab-0.4.0-py3-none-any.whl`; example JSON files are still in the source repository. **This project does not claim a PyPI distribution.**
 
+For the newer four-format importers and policy comparison CLI, see the
+[v0.5.0.dev0 research-only GitHub prerelease](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/releases/tag/v0.5.0.dev0).
+Install the attached experimental wheel with
+`python -m pip install ./kira_agent_trace_lab-0.5.0.dev0-py3-none-any.whl`.
+Verify the artifact against its attached SHA256SUMS.txt. This **does not**
+replace v0.4.0 as latest stable, establish real-user authorization
+labels or qualify any security-product claims.
+
 A source-distribution archive (.tar.gz) is an **installable code-only
 artifact**, not a substitute for cloning the Git repository: it intentionally
 excludes tests that require fixtures, research scripts and docs, adapted
