@@ -8,9 +8,12 @@ not in the wheel. No tool calls from any recorded trace are executed.
 from __future__ import annotations
 
 import hashlib
+from email.parser import BytesParser
+from email.policy import default as email_policy
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -37,6 +40,74 @@ REQUIRED_WHEEL_MEMBERS = frozenset({
     "agent_trace_lab/engine.py",
     "agent_trace_lab/schema.py",
 })
+
+WHEEL_FILENAME = re.compile(
+    r"^kira_agent_trace_lab-(?P<version>[0-9][0-9A-Za-z.!+_-]*)-py3-none-any\.whl$"
+)
+RELEASE_LINKS = frozenset({
+    "Homepage": "https://github.com/AkiyamaKira2003/kira-agent-trace-lab",
+    "Repository": "https://github.com/AkiyamaKira2003/kira-agent-trace-lab",
+    "Issues": "https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues",
+    "Documentation": "https://github.com/AkiyamaKira2003/kira-agent-trace-lab/blob/main/README.md",
+}.items())
+
+
+def source_project_version() -> str:
+    """Read one literal project version using stdlib on Python 3.10+."""
+    source = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    section = re.search(r"(?ms)^\[project\]\s*\r?\n(.*?)(?=^\[|\Z)", source)
+    if section is None:
+        raise SuiteError("project metadata section is missing")
+    versions = re.findall(
+        r'^version\s*=\s*"([0-9][0-9A-Za-z.!+_-]*)"\s*$',
+        section.group(1), flags=re.MULTILINE,
+    )
+    if len(versions) != 1:
+        raise SuiteError("source project version is absent or ambiguous")
+    return versions[0]
+
+
+def validate_release_metadata(path: Path) -> str:
+    """Inspect the actual distributable's release/legal/CLI declarations."""
+    filename = WHEEL_FILENAME.fullmatch(path.name)
+    if filename is None:
+        raise SuiteError("wheel filename is not the expected pure-Python distribution")
+    version = filename.group("version")
+    if version != source_project_version():
+        raise SuiteError("wheel release version differs from checked-out source")
+    prefix = f"kira_agent_trace_lab-{version}.dist-info/"
+    try:
+        with zipfile.ZipFile(path) as bundle:
+            metadata = BytesParser(policy=email_policy).parsebytes(
+                bundle.read(prefix + "METADATA")
+            )
+            entrypoints = bundle.read(prefix + "entry_points.txt").decode("utf-8")
+            wheel = bundle.read(prefix + "WHEEL").decode("utf-8")
+            license_text = bundle.read(prefix + "licenses/LICENSE").decode("utf-8")
+    except (KeyError, ValueError, UnicodeError, zipfile.BadZipFile) as exc:
+        raise SuiteError("wheel release metadata or license document missing") from exc
+
+    urls = set()
+    for item in metadata.get_all("Project-URL", []):
+        if ", " not in item:
+            raise SuiteError("malformed wheel project URL metadata")
+        label, url = item.split(", ", 1)
+        urls.add((label, url))
+    if (metadata.get("Name") != "kira-agent-trace-lab"
+            or metadata.get("Version") != version
+            or metadata.get("License-Expression") != "MIT"
+            or metadata.get("Requires-Python") != ">=3.10"
+            or metadata.get_all("Requires-Dist")
+            or "LICENSE" not in metadata.get_all("License-File", [])
+            or not RELEASE_LINKS <= urls):
+        raise SuiteError("wheel package/release declarations failed verification")
+    if (entrypoints.strip() !=
+            "[console_scripts]\nagent-trace-lab = agent_trace_lab.cli:main"
+            or "Tag: py3-none-any" not in wheel
+            or "MIT License" not in license_text
+            or "Permission is hereby granted" not in license_text):
+        raise SuiteError("wheel entry point, platform tag or embedded license inconsistent")
+    return version
 
 
 def wheel_members(path: Path) -> set[str]:
@@ -169,6 +240,7 @@ def verify_installed_diagnostic(args: list[str], cwd: Path,
 def run(wheel: Path) -> dict[str, Any]:
     wheel = wheel.resolve()
     names = wheel_members(wheel)
+    release_version = validate_release_metadata(wheel)
     artifacts = ROOT / "artifacts"
     artifacts.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="wheel-qa-", dir=artifacts) as directory:
@@ -243,6 +315,8 @@ def run(wheel: Path) -> dict[str, Any]:
         )
     return {
         "status": "ISOLATED_INSTALLED_WHEEL_SMOKE_PASS",
+        "release_metadata_version_verified": release_version,
+        "release_source_links_and_license_verified": True,
         "wheel_sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
         "wheel_members_checked": len(names),
         "synthetic_dojo_calls_imported_not_executed": 2,

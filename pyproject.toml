@@ -12,6 +12,12 @@ license = "MIT"
 authors = [{ name = "Akiyama Kira" }]
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/AkiyamaKira2003/kira-agent-trace-lab"
+Repository = "https://github.com/AkiyamaKira2003/kira-agent-trace-lab"
+Issues = "https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues"
+Documentation = "https://github.com/AkiyamaKira2003/kira-agent-trace-lab/blob/main/README.md"
+
 [project.scripts]
 agent-trace-lab = "agent_trace_lab.cli:main"
 
