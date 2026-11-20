@@ -296,6 +296,10 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(display, end="")
         return 0 if report["summary"]["matched"] == report["summary"]["total"] else 1
-    except (SuiteError, OSError) as exc:
+    except SuiteError as exc:
         print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except OSError:
+        # Importer paths and low-level errors may expose secrets in stderr.
+        print("error: filesystem I/O operation failed", file=sys.stderr)
         return 2

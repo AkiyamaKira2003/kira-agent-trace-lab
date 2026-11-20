@@ -244,6 +244,21 @@ def verify_installed_diagnostic(args: list[str], cwd: Path,
         raise SuiteError("installed malformed-input diagnostic redaction failed")
 
 
+def verify_installed_io_diagnostic(
+    args: list[str], cwd: Path, env: dict[str, str],
+    private_marker: str, category: str,
+) -> None:
+    """Check bounded installed I/O errors without forwarding raw stderr."""
+    completed = subprocess.run(
+        args, cwd=str(cwd), env=env, capture_output=True,
+        text=True, encoding="utf-8", timeout=45, check=False,
+    )
+    if (completed.returncode != 2
+            or private_marker in completed.stdout + completed.stderr
+            or category not in completed.stderr):
+        raise SuiteError("installed I/O diagnostic privacy or category verification failed")
+
+
 def validate_import_output_contract(before: bytes, after_block: bytes,
                                     after_explicit: bytes, old_id: str,
                                     new_id: str) -> None:
@@ -546,6 +561,50 @@ def run(wheel: Path) -> dict[str, Any]:
             [str(launcher), "evaluate", "malformed_demo.json"],
             work, env, private_marker,
         )
+        # Trigger real private-path failures on the installed distribution,
+        # independently through the Python module and the actual launcher.
+        # Every import command must redact the path without changing bytes.
+        private_path_marker = "PRIVATE_SYNTHETIC_PATH_INSTALLED_44321"
+        private_parent = work / private_path_marker
+        private_parent.write_bytes(sentinel)  # not a directory
+        missing_source = f"{private_path_marker}_MISSING.json"
+        for kind, recorded, policy in import_cases:
+            base_args = [
+                f"import-{kind}", recorded, "--policy-suite", policy,
+                "--case-id", "private_probe", "--expected", "allow",
+                "--output", str(private_parent / "report.json"),
+            ]
+            missing_args = base_args.copy()
+            missing_args[1] = missing_source
+            for launcher_prefix in (
+                [sys.executable, "-S", "-m", "agent_trace_lab"],
+                [str(launcher)],
+            ):
+                verify_installed_io_diagnostic(
+                    [*launcher_prefix, *base_args], work, env,
+                    private_path_marker, "filesystem I/O operation failed",
+                )
+                verify_installed_io_diagnostic(
+                    [*launcher_prefix, *missing_args], work, env,
+                    private_path_marker, "filesystem I/O failure",
+                )
+        for prefix in (
+            [sys.executable, "-S", "-m", "agent_trace_lab"],
+            [str(launcher)],
+        ):
+            for args in (
+                ["evaluate", missing_source],
+                ["compare-policies", missing_source, "--candidate-policy",
+                 "compare_candidate_task_guarded.json"],
+            ):
+                verify_installed_io_diagnostic(
+                    [*prefix, *args], work, env,
+                    private_path_marker, "filesystem I/O failure",
+                )
+        if (private_parent.read_bytes() != sentinel
+                or untouched.read_bytes() != sentinel
+                or list(work.glob(".agent-trace-import-*.tmp"))):
+            raise SuiteError("installed private-path probe modified unrelated files")
     return {
         "status": "ISOLATED_INSTALLED_WHEEL_SMOKE_PASS",
         "release_metadata_version_verified": release_version,
@@ -563,6 +622,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_policy_delta_case_id_redaction_verified": True,
         "installed_policy_delta_atomic_report_output_verified": True,
         "installed_schema_diagnostics_redacted": True,
+        "installed_cli_private_io_paths_redacted": True,
         "installed_import_output_no_clobber_verified": True,
         "installed_evaluation_output_no_clobber_verified": True,
         "installed_evaluation_mismatch_exit_and_overwrite_verified": True,

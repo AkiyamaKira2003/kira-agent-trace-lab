@@ -238,8 +238,16 @@ def load_json_document(path: str | Path) -> Any:
             object_pairs_hook=_object_no_duplicates,
             parse_constant=_reject_non_json_number,
         )
-    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError) as exc:
-        raise SuiteError(f"cannot read valid UTF-8 JSON suite: {exc}") from exc
+    except OSError as exc:
+        # Filesystem exception messages can disclose private source paths.
+        raise SuiteError("cannot read valid UTF-8 JSON suite: filesystem I/O failure") from exc
+    except UnicodeError as exc:
+        raise SuiteError("cannot read valid UTF-8 JSON suite: invalid UTF-8") from exc
+    except json.JSONDecodeError as exc:
+        # JSONDecodeError can include content, position or private literals.
+        raise SuiteError("cannot read valid UTF-8 JSON suite: malformed JSON") from exc
+    except RecursionError as exc:
+        raise SuiteError("cannot read valid UTF-8 JSON suite: excessive nesting") from exc
     return value
 
 

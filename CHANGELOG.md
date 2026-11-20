@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev1 development; not in published v0.5.0.dev0)
 
+- ATL-004AH: redact private filesystem path components and raw JSON
+  parser exception text in CLI read/import error diagnostics while
+  retaining bounded I/O, invalid UTF-8, malformed JSON and nesting
+  categories. Five installed importer commands and evaluate/compare
+  paths probed using isolated self-authored private-looking markers.
+  No claim of general-purpose trace anonymization.
 - ATL-004AG: optional compare-policies --output text/JSON report using
   the existing atomic no-clobber writer, explicit --overwrite and
   both-source file protection. Preserves original stdout and exit 0,
