@@ -532,6 +532,49 @@ def run(wheel: Path) -> dict[str, Any]:
             _execute([str(launcher), *stored_args, "--overwrite"], work, env)
             if (work / saved_name).read_text(encoding="utf-8") != original:
                 raise SuiteError("installed policy report was replaced unexpectedly")
+        # Opt-in aggregate report: actual installed module+console, no
+        # case identifiers, aliases, tool names, or per-case reason codes.
+        for fmt in ("json", "text"):
+            aggregate_args = [
+                "compare-policies", "demo_permissive.json",
+                "--candidate-policy", "compare_candidate_task_guarded.json",
+                "--summary-only", "--format", fmt,
+            ]
+            module_stdout = _execute(
+                [sys.executable, "-S", "-m", "agent_trace_lab", *aggregate_args],
+                work, env,
+            )
+            console_stdout = _execute(
+                [str(launcher), *aggregate_args], work, env,
+            )
+            destination = f"installed_policy_aggregate_{fmt}.txt"
+            written = _execute(
+                [str(launcher), *aggregate_args, "--output", destination],
+                work, env,
+            )
+            if (written or module_stdout != console_stdout
+                    or (work / destination).read_text(encoding="utf-8") != module_stdout
+                    or any(marker in module_stdout for marker in (
+                        "unrequested_forward", "case_0001", "TASK_GRANT_REQUIRED",
+                        "forward_email", "unrequested@example.invalid"))):
+                raise SuiteError("installed aggregate comparison leaked case details")
+            if fmt == "json":
+                if json.loads(module_stdout) != {"summary": module_delta["summary"]}:
+                    raise SuiteError("installed aggregate JSON changed policy counts")
+            elif (len(module_stdout.splitlines()) != 1
+                  or "allow->deny=1" not in module_stdout):
+                raise SuiteError("installed aggregate text was not exactly one summary line")
+            _execute(
+                [str(launcher), *aggregate_args, "--output", destination],
+                work, env, expected_exit=2,
+            )
+            _execute(
+                [sys.executable, "-S", "-m", "agent_trace_lab",
+                 *aggregate_args, "--output", destination, "--overwrite"],
+                work, env,
+            )
+            if (work / destination).read_text(encoding="utf-8") != module_stdout:
+                raise SuiteError("installed aggregate explicit overwrite changed counts")
         for protected in ("demo_permissive.json", "compare_candidate_task_guarded.json"):
             before = (work / protected).read_bytes()
             _execute(
@@ -621,6 +664,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_policy_delta_comparison_verified": True,
         "installed_policy_delta_case_id_redaction_verified": True,
         "installed_policy_delta_atomic_report_output_verified": True,
+        "installed_policy_delta_summary_only_verified": True,
         "installed_schema_diagnostics_redacted": True,
         "installed_cli_private_io_paths_redacted": True,
         "installed_import_output_no_clobber_verified": True,

@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- ATL-004AL: opt-in compare-policies --summary-only emits just
+  aggregate decision counters (JSON summary object or one text line),
+  also with atomic --output and no-clobber semantics. Per-case IDs,
+  aliases and violation codes are omitted; existing default output
+  and exit code unchanged. This is not whole-file anonymization or
+  evidence of real-world security effectiveness.
 - ATL-004AK: start a distinct post-release development version after
   publishing the research-only v0.5.0.dev1 prerelease. Packaging
   checks and CI derive filenames/metadata from source version; the

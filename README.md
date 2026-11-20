@@ -148,6 +148,20 @@ python -m agent_trace_lab compare-policies examples/demo_permissive.json --candi
 The report shows **policy decision changes, not externally validated
 security or human-authorization accuracy**. Saved outputs are
 committed atomically; original inputs are not modified.
+For a **strictly aggregate-only** shareable comparison, use
+`--summary-only` with either text or JSON (and optionally
+`--output`). Unlike `--redact-case-ids`, the saved/printed JSON
+contains **only** `summary` counters, with no `cases` array,
+case aliases, per-case decisions or violation codes. Text mode prints
+only the aggregate first line. Normal output remains unchanged.
+**Neither mode validates the source of consent or proves safety
+effectiveness; summary counters are not anonymization of the source
+files.**
+
+```sh
+python -m agent_trace_lab compare-policies examples/demo_permissive.json --candidate-policy examples/compare_candidate_task_guarded.json --summary-only --format json
+```
+
 See the [policy delta verification](docs/POLICY_CONTRAST_DEMO.md).
 
 To verify these exact outcomes from an isolated installed development wheel,

@@ -79,6 +79,10 @@ def main(argv: list[str] | None = None) -> int:
     compare.add_argument("--output", type=Path, help="write report to a NEW file instead of stdout")
     compare.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular report file")
     compare.add_argument(
+        "--summary-only", action="store_true",
+        help="show only aggregate policy-decision counts; omit all per-case identifiers and codes",
+    )
+    compare.add_argument(
         "--redact-case-ids", action="store_true",
         help="replace case IDs with deterministic per-report ordinals for sharing",
     )
@@ -148,7 +152,8 @@ def main(argv: list[str] | None = None) -> int:
                 redact_case_ids=args.redact_case_ids,
             )
             if args.format == "json":
-                display = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
+                public_report = {"summary": report["summary"]} if args.summary_only else report
+                display = json.dumps(public_report, indent=2, ensure_ascii=False) + "\n"
             else:
                 counts = report["summary"]
                 lines = [
@@ -157,14 +162,15 @@ def main(argv: list[str] | None = None) -> int:
                     f"deny->allow={counts['deny_to_allow']}). "
                     f"Candidate ignored grant records: {counts['candidate_ignored_grant_cases']}."
                 ]
-                for case in report["cases"]:
-                    status = "CHANGED" if case["changed"] else "SAME"
-                    lines.append(
-                        f"{status} {case['id']}: "
-                        f"baseline={case['baseline']} candidate={case['candidate']} "
-                        f"baseline_codes={','.join(case['baseline_codes']) or 'none'} "
-                        f"candidate_codes={','.join(case['candidate_codes']) or 'none'}"
-                    )
+                if not args.summary_only:
+                    for case in report["cases"]:
+                        status = "CHANGED" if case["changed"] else "SAME"
+                        lines.append(
+                            f"{status} {case['id']}: "
+                            f"baseline={case['baseline']} candidate={case['candidate']} "
+                            f"baseline_codes={','.join(case['baseline_codes']) or 'none'} "
+                            f"candidate_codes={','.join(case['candidate_codes']) or 'none'}"
+                        )
                 display = "\n".join(lines) + "\n"
             if args.output:
                 try:
