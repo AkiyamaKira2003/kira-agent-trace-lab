@@ -14,6 +14,7 @@ from .schema import SuiteError, load_json_document, load_suite
 from .otlp import import_otlp
 from .swe import import_swe_row
 from .agentdojo import import_agentdojo_run
+from .responses import import_responses_output
 
 
 def _write_import_suite(path: Path, suite: dict, *, overwrite: bool) -> None:
@@ -75,8 +76,30 @@ def main(argv: list[str] | None = None) -> int:
     dojo.add_argument("--expected", choices=("allow", "deny"), required=True, help="caller-reviewed scenario label; never inferred from the run")
     dojo.add_argument("--output", type=Path, required=True, help="private output suite (may include recorded argument values)")
     dojo.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output file")
+    responses = subcommands.add_parser("import-responses", help="convert one completed OpenAI Responses API JSON output into an offline suite")
+    responses.add_argument("response", type=Path, help="one locally saved response JSON object, not an event stream")
+    responses.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
+    responses.add_argument("--case-id", required=True, help="unique ID for the imported case")
+    responses.add_argument("--expected", choices=("allow", "deny"), required=True, help="caller-supplied label, not inferred from model or tool output")
+    responses.add_argument("--output", type=Path, required=True, help="private suite path (may include sensitive arguments)")
+    responses.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output file")
     args = parser.parse_args(argv)
     try:
+        if args.command == "import-responses":
+            if args.output.resolve() in (args.response.resolve(), args.policy_suite.resolve()):
+                raise SuiteError("refusing to overwrite the response or policy suite")
+            policy = load_suite(args.policy_suite)["policy"]
+            suite = import_responses_output(
+                load_json_document(args.response),
+                policy=policy, case_id=args.case_id, expected=args.expected,
+            )
+            _write_import_suite(args.output, suite, overwrite=args.overwrite)
+            print(
+                f"Imported {len(suite['cases'][0]['trace'])} recorded Responses function calls. "
+                "Label is caller-provided, not authenticated or inferred. "
+                "No calls executed. Output may contain sensitive arguments."
+            )
+            return 0
         if args.command == "import-agentdojo":
             if args.output.resolve() in (args.run.resolve(), args.policy_suite.resolve()):
                 raise SuiteError("refusing to overwrite the AgentDojo run or policy suite")

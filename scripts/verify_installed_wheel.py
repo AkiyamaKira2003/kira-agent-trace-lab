@@ -30,6 +30,7 @@ EXAMPLES = (
     "otlp_spans.json",
     "swe_recorded_row_synthetic.json",
     "swe_structural_policy.json",
+    "responses_function_calls_synthetic.json",
     "agentdojo_recorded_synthetic.json",
     "agentdojo_policy_simulated_scope.json",
     "demo_permissive.json",
@@ -40,6 +41,7 @@ REQUIRED_WHEEL_MEMBERS = frozenset({
     "agent_trace_lab/__main__.py",
     "agent_trace_lab/cli.py",
     "agent_trace_lab/agentdojo.py",
+    "agent_trace_lab/responses.py",
     "agent_trace_lab/engine.py",
     "agent_trace_lab/schema.py",
 })
@@ -326,6 +328,7 @@ def run(wheel: Path) -> dict[str, Any]:
             ("swe", "swe_recorded_row_synthetic.json", "swe_structural_policy.json"),
             ("agentdojo", "agentdojo_recorded_synthetic.json",
              "agentdojo_policy_simulated_scope.json"),
+            ("responses", "responses_function_calls_synthetic.json", "suite.json"),
         )
         untouched = work / "unrelated_private_sentinel.txt"
         sentinel = b"UNRELATED_SYNTHETIC_PRIVATE_FILE_DO_NOT_REPLACE"

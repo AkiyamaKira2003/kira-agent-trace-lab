@@ -97,7 +97,7 @@ In a 1.1 policy, `task_guarded_tools` names must already be in the tool allowlis
 
 **Security boundary:** this offline evaluator **does not authenticate the user, validate source_ref or prove that a grant was genuinely issued**. A malicious party could fabricate a matching grant if permitted to author the suite. A separate trusted system must establish and protect actual approval evidence. Never use these evaluation results as authorization to execute real tools. See the [design and threat model](docs/TASK_AUTHORIZATION_DESIGN.md).
 
-All three recorded trace importers (OTLP, SWE, AgentDojo) now refuse to
+All four recorded trace importers (OTLP, SWE, AgentDojo, Responses) refuse to
 overwrite an existing output file by default. To repeat an import to
 the same destination, use a new filename or explicitly pass
 **--overwrite**. The opt-in replacement is atomic for regular files
@@ -106,6 +106,26 @@ and refuses symbolic-link destinations; see
 The initial write is also committed only after the complete JSON
 has been written to a private temporary file. Filesystems that do not
 support hardlinks fail closed instead of exposing partial output.
+
+## OpenAI Responses API function-call output import (development main)
+
+The optional import-responses converter reads **one locally saved, completed
+Responses API response JSON object**. It imports ordered function_call items
+inside the top-level output array, using their name and JSON-string arguments.
+It ignores ordinary assistant messages and reasoning items, but rejects
+unsupported hosted tool calls rather than treating them as a clean trace.
+Streaming events, full conversation histories and Chat Completions tool_calls
+are outside the supported envelope.
+
+    python -m agent_trace_lab import-responses examples/responses_function_calls_synthetic.json --policy-suite examples/suite.json --case-id synthetic_responses --expected allow --output artifacts/responses_imported.json
+    python -m agent_trace_lab evaluate artifacts/responses_imported.json
+
+The fixture is entirely **self-authored** from the documented API shape;
+it is not a recorded user/model run. The expected label is caller-supplied,
+not independently authenticated. No API request, model call or recorded
+function execution occurs. Exported arguments can contain sensitive
+information; keep real imports private. See the
+[format scope and upstream sources](docs/RESPONSES_FUNCTION_CALL_IMPORT.md).
 
 ## Import OpenTelemetry tool traces (v0.2)
 
