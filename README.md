@@ -21,6 +21,27 @@ Exit **0** means all expected case labels matched, **1** means at least one mism
 
 The included synthetic example yields **8/8 labeled matches** with TP=5 and TN=3. **This is a smoke test, not an independently measured agent-safety score.**
 
+### Two-policy demo: a deliberate mismatch and a task-scoped alternative
+
+The [self-authored CLI contrast](docs/POLICY_CONTRAST_DEMO.md) uses the same
+fictional unrequested email-forward action under two policies. A permissive
+tool-name allowlist **allows** it and intentionally exits **1** because the
+synthetic case label expects denial. A task-scoped schema 1.1 policy **denies**
+it without an exact-action grant, while also demonstrating a matching
+fictional grant, recipient redirect, one-time grant consumption, and a normal
+search. All five schema 1.1 cases match their **self-authored** labels.
+
+```sh
+python -m agent_trace_lab evaluate examples/demo_permissive.json
+python -m agent_trace_lab evaluate examples/demo_task_scoped.json
+```
+
+To verify these exact outcomes from an isolated installed development wheel,
+run `python -m scripts.verify_installed_wheel --wheel-dir artifacts/qa-demo-wheel`
+after building the wheel as documented in the [demo instructions](docs/POLICY_CONTRAST_DEMO.md).
+Neither a fictional grant nor fixture-label agreement is authenticated user
+consent or evidence of real-world protection.
+
 ### External counterexample (deliberate mismatch)
 
 An attributed two-case [AgentDrift external case study](docs/EXTERNAL_CASE_STUDY.md) demonstrates that tool-name allowlists **cannot infer user-task authorization**. The third-party, independently labeled *synthetic* corpus includes a hijacked email-forward/delete sequence. With an intentionally permissive policy, this evaluator still **allows** it: the example exits **1**, exposing the expected *semantic coverage gap* rather than hiding it behind a perfect synthetic score.

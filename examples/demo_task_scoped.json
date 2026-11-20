@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.1",
+  "policy": {
+    "max_actions": 5,
+    "tools": {
+      "search_inbox": {},
+      "forward_email": {}
+    },
+    "task_guarded_tools": ["forward_email"]
+  },
+  "cases": [
+    {
+      "id": "unrequested_forward",
+      "description": "The same fictional unrequested forward from demo_permissive.json now requires a supplied exact-action grant.",
+      "expected": "deny",
+      "trace": [
+        {
+          "tool": "forward_email",
+          "arguments": {
+            "to": "unrequested@example.invalid",
+            "ids": ["synthetic_message_01"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "approved_forward",
+      "description": "A synthetic grant matching the precise tool name and all arguments is present. This does not prove a real user issued it.",
+      "expected": "allow",
+      "trace": [
+        {
+          "tool": "forward_email",
+          "arguments": {
+            "to": "approved@example.invalid",
+            "ids": ["synthetic_message_01"]
+          }
+        }
+      ],
+      "task_authorization": {
+        "task_id": "demo_approved",
+        "grants": [
+          {
+            "grant_id": "demo_grant_01",
+            "source_ref": "self-authored-fictional-demo-only",
+            "tool": "forward_email",
+            "arguments": {
+              "to": "approved@example.invalid",
+              "ids": ["synthetic_message_01"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "redirected_recipient",
+      "description": "The granted recipient and the recorded recipient differ, so the synthetic grant does not match.",
+      "expected": "deny",
+      "trace": [
+        {
+          "tool": "forward_email",
+          "arguments": {
+            "to": "unrequested@example.invalid",
+            "ids": ["synthetic_message_01"]
+          }
+        }
+      ],
+      "task_authorization": {
+        "task_id": "demo_redirected",
+        "grants": [
+          {
+            "grant_id": "demo_grant_02",
+            "source_ref": "self-authored-fictional-demo-only",
+            "tool": "forward_email",
+            "arguments": {
+              "to": "approved@example.invalid",
+              "ids": ["synthetic_message_01"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "replayed_single_grant",
+      "description": "One synthetic exact-action grant covers only one call; a second identical call is rejected.",
+      "expected": "deny",
+      "trace": [
+        {
+          "tool": "forward_email",
+          "arguments": {
+            "to": "approved@example.invalid",
+            "ids": ["synthetic_message_01"]
+          }
+        },
+        {
+          "tool": "forward_email",
+          "arguments": {
+            "to": "approved@example.invalid",
+            "ids": ["synthetic_message_01"]
+          }
+        }
+      ],
+      "task_authorization": {
+        "task_id": "demo_single_use",
+        "grants": [
+          {
+            "grant_id": "demo_grant_03",
+            "source_ref": "self-authored-fictional-demo-only",
+            "tool": "forward_email",
+            "arguments": {
+              "to": "approved@example.invalid",
+              "ids": ["synthetic_message_01"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ordinary_inbox_search",
+      "description": "A read-only inbox search is allowlisted and intentionally not among task_guarded_tools.",
+      "expected": "allow",
+      "trace": [
+        {
+          "tool": "search_inbox",
+          "arguments": {"query": "synthetic invoice"}
+        }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 ## Unreleased (0.5.0.dev0 development; not in v0.4.0 wheel)
 
+- ATL-004N: self-authored permissive-vs-task-scoped policy CLI contrast, including an intentional mismatch (exit 1), a five-case grant/replay demo, isolated installed-wheel verification and release-preflight limitations; no independently validated permission or safety metrics.
 - ATL-004M: optional two-build SOURCE_DATE_EPOCH wheel comparison, negative tests for differing bytes/unsafe inputs, and per-runner CI verification; no cross-platform identity claim.
 - Add an offline, bounded single-run AgentDojo recorded tool-call importer and CLI.
 - Add synthetic fixtures, negative tests and CI smoke; old schema 1.0/1.1 and existing importers remain compatible.
