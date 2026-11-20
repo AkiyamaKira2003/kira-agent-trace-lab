@@ -31,6 +31,11 @@ maps the already-implemented OTLP, SWE and AgentDojo importers to the
 original read-only trace-adapter objective. Independent task-authorization
 evidence and externally labeled security metrics remain unmet release gates.
 
+The [v0.5 research release gate](docs/RELEASE_GATE_V05_RESEARCH.md)
+documents which packaging, licensing, execution and evidence checks
+are verified and which remain on hold. The development version is not
+an independently validated security product or a stable v0.5 release.
+
 The included synthetic example yields **8/8 labeled matches** with TP=5 and TN=3. **This is a smoke test, not an independently measured agent-safety score.**
 
 ### Two-policy demo: a deliberate mismatch and a task-scoped alternative

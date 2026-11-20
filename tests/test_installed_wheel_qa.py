@@ -15,7 +15,8 @@ from agent_trace_lab.engine import evaluate_suite
 from agent_trace_lab.schema import load_suite
 from scripts.verify_installed_wheel import (
     REQUIRED_WHEEL_MEMBERS, _execute, validate_evaluation, wheel_members,
-    installed_console_path, validate_console_equivalence,
+    RELEASE_LINKS, installed_console_path, validate_console_equivalence,
+    validate_release_metadata, source_project_version,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,40 @@ def make_wheel(directory: Path, *, members: list[str] | None = None) -> Path:
     with zipfile.ZipFile(path, "w") as archive:
         for name in members if members is not None else sorted(REQUIRED_WHEEL_MEMBERS):
             archive.writestr(name, "# harmless synthetic placeholder\n")
+    return path
+
+
+def make_release_metadata_wheel(
+    directory: Path, *, changes: dict[str, bytes] | None = None,
+    omissions: set[str] | None = None,
+) -> Path:
+    prefix = "kira_agent_trace_lab-0.5.0.dev0.dist-info/"
+    header = (
+        "Metadata-Version: 2.4\n"
+        "Name: kira-agent-trace-lab\n"
+        "Version: 0.5.0.dev0\n"
+        "License-Expression: MIT\n"
+        "License-File: LICENSE\n"
+        "Requires-Python: >=3.10\n"
+    )
+    for label, url in sorted(RELEASE_LINKS):
+        header += f"Project-URL: {label}, {url}\n"
+    payload = {
+        prefix + "METADATA": header.encode("utf-8"),
+        prefix + "WHEEL": b"Wheel-Version: 1.0\nTag: py3-none-any\n",
+        prefix + "entry_points.txt": (
+            b"[console_scripts]\nagent-trace-lab = agent_trace_lab.cli:main\n"
+        ),
+        prefix + "licenses/LICENSE": (
+            b"MIT License\n\nPermission is hereby granted, free of charge"
+        ),
+    }
+    payload.update(changes or {})
+    path = directory / "kira_agent_trace_lab-0.5.0.dev0-py3-none-any.whl"
+    with zipfile.ZipFile(path, "w") as archive:
+        for name, value in payload.items():
+            if name not in (omissions or set()):
+                archive.writestr(name, value)
     return path
 
 
@@ -82,6 +117,75 @@ class InstalledWheelQATests(unittest.TestCase):
             bad.rename(Path(directory) / "something_else.zip")
             with self.assertRaisesRegex(SuiteError, "wheel path"):
                 wheel_members(Path(directory) / "something_else.zip")
+
+    def test_release_metadata_checks_real_distributable_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = make_release_metadata_wheel(Path(directory))
+            self.assertEqual(validate_release_metadata(path), "0.5.0.dev0")
+            self.assertEqual(source_project_version(), "0.5.0.dev0")
+
+    def test_release_metadata_rejects_different_source_version(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = make_release_metadata_wheel(Path(directory))
+            with patch("scripts.verify_installed_wheel.source_project_version",
+                       return_value="0.5.0.dev999"):
+                with self.assertRaisesRegex(SuiteError, "checked-out source"):
+                    validate_release_metadata(path)
+
+    def test_release_metadata_fails_closed_on_omitted_document(self):
+        base = "kira_agent_trace_lab-0.5.0.dev0.dist-info/"
+        for missing in ("METADATA", "WHEEL", "entry_points.txt", "licenses/LICENSE"):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as directory:
+                path = make_release_metadata_wheel(
+                    Path(directory), omissions={base + missing},
+                )
+                with self.assertRaises(SuiteError):
+                    validate_release_metadata(path)
+
+    def test_release_metadata_rejects_unverified_distribution_claims(self):
+        base = "kira_agent_trace_lab-0.5.0.dev0.dist-info/"
+        for name, fragment in (
+            ("wrong_version", "Version: 0.4.0\n"),
+            ("missing_repository_url", "Project-URL: Repository, "),
+            ("unexpected_runtime_dependency", "Requires-Dist: external-pkg>=1\n"),
+            ("changed_license", "License-Expression: Apache-2.0\n"),
+        ):
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:
+                path = make_release_metadata_wheel(Path(directory))
+                with zipfile.ZipFile(path) as archive:
+                    metadata = archive.read(base + "METADATA").decode("utf-8")
+                    data = {key: archive.read(key) for key in archive.namelist()}
+                if name == "wrong_version":
+                    metadata = metadata.replace("Version: 0.5.0.dev0\n", fragment)
+                elif name == "missing_repository_url":
+                    metadata = "\n".join(
+                        line for line in metadata.split("\n")
+                        if not line.startswith(fragment)
+                    )
+                elif name == "unexpected_runtime_dependency":
+                    metadata += fragment
+                else:
+                    metadata = metadata.replace("License-Expression: MIT\n", fragment)
+                data[base + "METADATA"] = metadata.encode("utf-8")
+                with zipfile.ZipFile(path, "w") as archive:
+                    for key, value in data.items():
+                        archive.writestr(key, value)
+                with self.assertRaisesRegex(SuiteError, "declarations"):
+                    validate_release_metadata(path)
+
+    def test_release_metadata_rejects_nonstandard_entrypoint_or_tags(self):
+        base = "kira_agent_trace_lab-0.5.0.dev0.dist-info/"
+        for member, value in (
+            ("entry_points.txt", b"[console_scripts]\nother = something:else"),
+            ("WHEEL", b"Wheel-Version: 1.0\nTag: cp312-win_amd64"),
+            ("licenses/LICENSE", b"not an MIT license"),
+        ):
+            with self.subTest(member=member), tempfile.TemporaryDirectory() as directory:
+                path = make_release_metadata_wheel(
+                    Path(directory), changes={base + member: value},
+                )
+                with self.assertRaisesRegex(SuiteError, "inconsistent"):
+                    validate_release_metadata(path)
 
     def test_json_summary_require_exact_fixture_matches(self):
         validate_evaluation({"summary": {"total": 8, "matched": 8}}, 8)
