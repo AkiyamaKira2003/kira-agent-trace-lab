@@ -90,6 +90,9 @@ the same destination, use a new filename or explicitly pass
 **--overwrite**. The opt-in replacement is atomic for regular files
 and refuses symbolic-link destinations; see
 [import output safety](docs/IMPORT_OUTPUT_SAFETY.md).
+The initial write is also committed only after the complete JSON
+has been written to a private temporary file. Filesystems that do not
+support hardlinks fail closed instead of exposing partial output.
 
 ## Import OpenTelemetry tool traces (v0.2)
 

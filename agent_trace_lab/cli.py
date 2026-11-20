@@ -17,22 +17,14 @@ from .agentdojo import import_agentdojo_run
 
 
 def _write_import_suite(path: Path, suite: dict, *, overwrite: bool) -> None:
-    """Write sensitive imported arguments; default must never replace a file."""
+    """Commit complete imported JSON without exposing a partial destination."""
     payload = json.dumps(suite, indent=2, ensure_ascii=False) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    if not overwrite:
-        try:
-            # Exclusive creation is atomic, also refusing existing symlinks.
-            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError as exc:
-            raise SuiteError("output already exists; choose a new path or use --overwrite") from exc
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            stream.write(payload)
-        return
-    if path.is_symlink():
+    if overwrite and path.is_symlink():
         raise SuiteError("refusing --overwrite on a symbolic-link output")
-    # Explicit overwrite uses a private sibling temp file followed by an
-    # atomic replace; never follow a pre-existing output hardlink or symlink.
+    # Write the full payload to a private same-directory temporary file.
+    # Link without replacement by default; use atomic replace only when
+    # explicitly requested. No partial data is exposed at the final path.
     tmp_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -41,7 +33,15 @@ def _write_import_suite(path: Path, suite: dict, *, overwrite: bool) -> None:
         ) as stream:
             tmp_path = Path(stream.name)
             stream.write(payload)
-        os.replace(tmp_path, path)
+        if overwrite:
+            os.replace(tmp_path, path)
+        else:
+            try:
+                os.link(tmp_path, path)
+            except FileExistsError as exc:
+                raise SuiteError(
+                    "output already exists; choose a new path or use --overwrite"
+                ) from exc
     finally:
         if tmp_path is not None:
             tmp_path.unlink(missing_ok=True)
