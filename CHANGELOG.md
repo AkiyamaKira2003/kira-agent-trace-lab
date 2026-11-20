@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- ATL-004AO: real Chrome desktop/mobile visual QA found the verdict
+  colors were overridden by the generic card-paragraph rule;
+  more-specific Allow/Deny selectors preserve green/amber distinction.
+  Regression test, exact rendered colors at 1600/375/320px
+  viewports and real Chrome screenshot in README retain the
+  fictional research-only scope. No network/CDN or runtime assets.
 - ATL-004AN: add a standalone, self-authored offline HTML/CSS
   research demo of the existing aggregate-only policy contrast.
   Six counters are checked against actual Python comparison output;

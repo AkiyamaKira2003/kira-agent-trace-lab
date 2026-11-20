@@ -195,6 +195,15 @@ The [self-contained policy comparison demo](docs/policy-contrast-research-demo.h
 illustrates the same fictional 1/1 changed decision in a read-only
 HTML/CSS layout. Download that HTML file and open it **locally** in
 your browser; a GitHub source-file view is not a live HTML preview.
+
+![Actual Chrome 1600x900 capture of the fictional research demo, showing distinct green Allow and amber Deny decisions](docs/images/policy-contrast-qa-1600.png)
+
+The image is a **real local Chrome headless screenshot** at 1600×900.
+The same source was also rendered at 375×812 and 320×700 with no
+horizontal overflow and a single-column mobile layout; those QA
+captures are retained locally, not distributed as runtime assets.
+This is one-browser visual QA, not cross-browser certification.
+
 No JavaScript, remote assets, CDNs, analytics, private trace arguments
 or network requests are included. An automated test cross-checks
 all six displayed counters with the actual Python policy comparison
