@@ -43,6 +43,9 @@ The [v0.5 research release gate](docs/RELEASE_GATE_V05_RESEARCH.md)
 documents which packaging, licensing, execution and evidence checks
 are verified and which remain on hold. The development version is not
 an independently validated security product or a stable v0.5 release.
+The [v0.5.0.dev0 research-only prerelease notes](docs/RELEASE_NOTES_V050_DEV0.md)
+separate verified installation and static-policy features from
+unverified real-user grant and independent security-evaluation gates.
 
 The included synthetic example yields **8/8 labeled matches** with TP=5 and TN=3. **This is a smoke test, not an independently measured agent-safety score.**
 
