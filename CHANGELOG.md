@@ -2,6 +2,10 @@
 
 ## Unreleased (0.5.0.dev1 development; not in published v0.5.0.dev0)
 
+- ATL-004AD: fix destructive evaluate --output report writes; add default
+  no-clobber, explicit --overwrite, atomic complete-file publication,
+  symlink/input protection and focused fault-injection plus installed CLI
+  smoke tests. Keep original evaluation verdict and exit 0/1 semantics.
 - ATL-004AC: begin a distinctly versioned post-prerelease development cycle.
   Derive wheel/source-archive filenames from source metadata across QA and CI,
   without rebuilding or replacing the already-published v0.5.0.dev0 release.

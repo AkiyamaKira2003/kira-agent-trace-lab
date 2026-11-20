@@ -17,9 +17,10 @@ from .agentdojo import import_agentdojo_run
 from .responses import import_responses_output
 
 
-def _write_import_suite(path: Path, suite: dict, *, overwrite: bool) -> None:
-    """Commit complete imported JSON without exposing a partial destination."""
-    payload = json.dumps(suite, indent=2, ensure_ascii=False) + "\n"
+def _write_complete_output(
+    path: Path, payload: str, *, overwrite: bool, prefix: str,
+) -> None:
+    """Atomically publish complete UTF-8 content without implicit clobber."""
     path.parent.mkdir(parents=True, exist_ok=True)
     if overwrite and path.is_symlink():
         raise SuiteError("refusing --overwrite on a symbolic-link output")
@@ -30,7 +31,7 @@ def _write_import_suite(path: Path, suite: dict, *, overwrite: bool) -> None:
     try:
         with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", dir=path.parent,
-            prefix=".agent-trace-import-", suffix=".tmp", delete=False,
+            prefix=prefix, suffix=".tmp", delete=False,
         ) as stream:
             tmp_path = Path(stream.name)
             stream.write(payload)
@@ -48,13 +49,22 @@ def _write_import_suite(path: Path, suite: dict, *, overwrite: bool) -> None:
             tmp_path.unlink(missing_ok=True)
 
 
+def _write_import_suite(path: Path, suite: dict, *, overwrite: bool) -> None:
+    """Commit complete imported JSON with the existing safe-write contract."""
+    payload = json.dumps(suite, indent=2, ensure_ascii=False) + "\n"
+    _write_complete_output(
+        path, payload, overwrite=overwrite, prefix=".agent-trace-import-",
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="agent-trace-lab", description="Offline policy audit of AI-agent tool traces")
     subcommands = parser.add_subparsers(dest="command", required=True)
     evaluate = subcommands.add_parser("evaluate", help="evaluate a JSON suite without executing its tool actions")
     evaluate.add_argument("suite", type=Path)
     evaluate.add_argument("--format", choices=("text", "json"), default="text")
-    evaluate.add_argument("--output", type=Path, help="write report to file instead of stdout")
+    evaluate.add_argument("--output", type=Path, help="write complete report to a NEW file instead of stdout")
+    evaluate.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular report file")
     compare = subcommands.add_parser(
         "compare-policies", help="compare policy-only decision deltas on identical offline trace cases",
     )
@@ -203,8 +213,14 @@ def main(argv: list[str] | None = None) -> int:
                 codes = ",".join(v["code"] for v in case["violations"]) or "none"
                 display += f"{verdict} {case['id']}: expected={case['expected']} actual={case['actual']} violations={codes}\n"
         if args.output:
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(display, encoding="utf-8")
+            try:
+                _write_complete_output(
+                    args.output, display, overwrite=args.overwrite,
+                    prefix=".agent-trace-report-",
+                )
+            except OSError as exc:
+                # Destination names can reveal private case/client data.
+                raise SuiteError("unable to safely write evaluation report") from exc
         else:
             print(display, end="")
         return 0 if report["summary"]["matched"] == report["summary"]["total"] else 1

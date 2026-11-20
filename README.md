@@ -38,6 +38,21 @@ python -m agent_trace_lab evaluate examples/suite.json --format json --output ar
 python -m unittest discover -s tests -v
 ```
 
+When writing an evaluation report, **--output only creates a new
+file**. If it already exists, the CLI returns exit **2** without
+replacing it. To deliberately replace an existing regular report:
+
+```sh
+python -m agent_trace_lab evaluate examples/suite.json --format json --output artifacts/report.json --overwrite
+```
+
+Report publishing uses a complete temporary write and an atomic
+commit; it refuses to overwrite the input suite or follow a symbolic
+link as a report target. A saved report still returns exit **1** when
+its synthetic expected labels do not match policy verdicts. Output
+contents can carry case identifiers; the write safeguards do not
+anonymize them.
+
 Exit **0** means all expected case labels matched, **1** means at least one mismatch, and **2** means invalid input/I/O failure. The same input yields the same report.
 
 Malformed inputs are rejected with bounded, [privacy-conscious schema
