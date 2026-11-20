@@ -22,7 +22,8 @@ def _object_no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise SuiteError(f"duplicate JSON property: {key}")
+            # JSON object keys are untrusted and may carry user secrets.
+            raise SuiteError("duplicate JSON property")
         result[key] = value
     return result
 
@@ -54,7 +55,10 @@ def _keys(value: Any, location: str, required: set[str], optional: set[str] | No
     missing = required - actual
     unexpected = actual - required - (optional or set())
     if missing or unexpected:
-        raise SuiteError(f"{location}: missing={sorted(missing)}, unexpected={sorted(unexpected)}")
+        # Required keys come from the trusted schema; never echo unknown keys.
+        raise SuiteError(
+            f"{location}: missing={sorted(missing)}, unexpected_count={len(unexpected)}"
+        )
     return value
 
 
@@ -151,27 +155,28 @@ def validate_suite(suite: Any) -> dict[str, Any]:
     tools = policy["tools"]
     if not isinstance(tools, dict) or not 1 <= len(tools) <= 100:
         raise SuiteError("policy.tools must be a nonempty object (max 100)")
-    for name, config in tools.items():
+    for tool_index, (name, config) in enumerate(tools.items()):
+        tool_location = f"policy.tools[{tool_index}]"
         if not isinstance(name, str) or not _IDENTIFIER.fullmatch(name):
-            raise SuiteError(f"invalid tool name: {name!r}")
+            raise SuiteError(f"{tool_location}: invalid tool name")
         config = _keys(
-            config, f"policy.tools.{name}", set(),
+            config, tool_location, set(),
             {"path_args", "allowed_roots", "url_args", "allowed_hosts"},
         )
-        path_args = _strings(config.get("path_args", []), f"{name}.path_args")
-        roots = _strings(config.get("allowed_roots", []), f"{name}.allowed_roots")
-        url_args = _strings(config.get("url_args", []), f"{name}.url_args")
-        hosts = _strings(config.get("allowed_hosts", []), f"{name}.allowed_hosts")
+        path_args = _strings(config.get("path_args", []), f"{tool_location}.path_args")
+        roots = _strings(config.get("allowed_roots", []), f"{tool_location}.allowed_roots")
+        url_args = _strings(config.get("url_args", []), f"{tool_location}.url_args")
+        hosts = _strings(config.get("allowed_hosts", []), f"{tool_location}.allowed_hosts")
         if bool(path_args) != bool(roots) or bool(url_args) != bool(hosts):
-            raise SuiteError(f"{name}: path_args/allowed_roots and url_args/allowed_hosts must be paired")
+            raise SuiteError(f"{tool_location}: path_args/allowed_roots and url_args/allowed_hosts must be paired")
         if any(not _IDENTIFIER.fullmatch(arg) for arg in path_args + url_args):
-            raise SuiteError(f"{name}: invalid argument name")
+            raise SuiteError(f"{tool_location}: invalid argument name")
         if set(path_args) & set(url_args):
-            raise SuiteError(f"{name}: an argument cannot be a path and URL")
+            raise SuiteError(f"{tool_location}: an argument cannot be a path and URL")
         if any(not _canonical_path(root) for root in roots):
-            raise SuiteError(f"{name}: allowed_roots must be canonical absolute POSIX paths")
+            raise SuiteError(f"{tool_location}: allowed_roots must be canonical absolute POSIX paths")
         if any(host != host.lower() or not _HOST.fullmatch(host) or ".." in host for host in hosts):
-            raise SuiteError(f"{name}: allowed_hosts must be exact lower-case DNS names")
+            raise SuiteError(f"{tool_location}: allowed_hosts must be exact lower-case DNS names")
 
     guarded: set[str] = set()
     if version == "1.1":
