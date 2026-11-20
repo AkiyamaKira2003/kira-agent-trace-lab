@@ -118,6 +118,8 @@ To avoid reporting only cherry-picked cases, the [cross-suite sampling protocol]
 
 The follow-up [preregistered stratified study](docs/AGENTDOJO_STRATIFIED_REVIEW.md) froze its sampling rule in Git commit `3385f7d` **before** reading new results: four suites, two fixed task IDs and three exposure conditions (24 slots). Its bounded `python -m scripts.audit_agentdojo_strata --check-upstream` audit identified **20 available, four missing** recorded runs; the missing Slack `injection_task_0` slots are not replaced. All 24 simulated-scope reviews are **pending/not_reviewed** and all 24 genuine-human authorization labels **abstain**. No external reviewers, trusted grants or detection-accuracy statistics are claimed.
 
+ATL-004H adds a [privacy-minimized review packet and provisional agreement gate](docs/AGENTDOJO_REVIEW_PACKET.md). Its four pinned original task-source files match SHA-256, and the generated packet preserves 24 slots / 20 available / four missing with **48 action names/ordinals only**, excluding prompts, recipients, argument values and publisher result flags. Run `python -m scripts.agentdojo_review_packet --check-upstream` for the optional source audit, or `python -m scripts.agentdojo_review_packet --write-packet docs/agentdojo_review_packet.json` to create a non-overwriting metadata packet. A local `--reviews` input may produce **provisional** agreement counts, but cannot authenticate actual reviewer identities or verify cited source meaning: **zero independent agreement is accepted, and human-grant labels remain abstain**.
+
 ## Design
 
 An input JSON suite has:
