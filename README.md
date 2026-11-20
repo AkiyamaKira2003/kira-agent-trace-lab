@@ -114,6 +114,8 @@ An optional `python -m scripts.audit_agentdojo_import_contrast` research script 
 
 Counterexample for overrestrictive policies: the opt-in `python -m scripts.audit_agentdojo_email_control` checks a pinned *legitimate* AgentDojo user task requesting an emailed summary and its recorded run. The action targets the task-defined recipient, but a blanket no-send policy denies it. This checks only **simulated tool and recipient scope**, not the correctness of the email content or any genuine human approval. See [the evidence audit](docs/AGENTDOJO_SIMULATED_BOUNDARY.md).
 
+To avoid reporting only cherry-picked cases, the [cross-suite sampling protocol](docs/AGENTDOJO_SAMPLING_PROTOCOL.md) defines an explicitly **non-random**, predeclared source-selection rule and an opt-in `python -m scripts.audit_agentdojo_sampling --check-upstream` audit. It checks four pinned recorded runs from banking and workspace (two no-injection, two injection-attempt exposures) and reports **four simulated-scope abstentions and four human-grant abstentions**. This is a reproducibility/coverage check, **not** a detection-rate benchmark.
+
 ## Design
 
 An input JSON suite has:
