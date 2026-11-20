@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased (0.5.0.dev0 development; not in v0.4.0 wheel)
+
+- Add an offline, bounded single-run AgentDojo recorded tool-call importer and CLI.
+- Add synthetic fixtures, negative tests and CI smoke; old schema 1.0/1.1 and existing importers remain compatible.
+- Independently import two pinned AgentDojo benchmark runs and compare a permissive allowlist to a simulated-calendar-task allowlist. The selected injected run contains an out-of-scope email action that the permissive allowlist accepts. These are synthetic-scenario contrasts, **not** real-user authorization accuracy metrics.
+
 ## v0.4.0 — 2026-11-20
 
 - Experimental, offline import of SWE-agent-style **single-row** recorded assistant tool calls with strict JSON arguments and bounded input. The importer is available in this stable *package release*, but the importer format remains an experimental integration.

@@ -11,6 +11,7 @@ from .engine import evaluate_suite
 from .schema import SuiteError, load_json_document, load_suite
 from .otlp import import_otlp
 from .swe import import_swe_row
+from .agentdojo import import_agentdojo_run
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -32,8 +33,32 @@ def main(argv: list[str] | None = None) -> int:
     swe.add_argument("--case-id", required=True, help="unique ID for the imported case")
     swe.add_argument("--expected", choices=("allow", "deny"), required=True, help="caller-supplied label, never inferred from resolved")
     swe.add_argument("--output", type=Path, required=True, help="output suite file (may contain sensitive arguments)")
+    dojo = subcommands.add_parser("import-agentdojo", help="convert a locally saved AgentDojo recorded run into a suite")
+    dojo.add_argument("run", type=Path, help="one AgentDojo JSON run; no remote fetch or replay")
+    dojo.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
+    dojo.add_argument("--case-id", required=True, help="unique ID for the imported case")
+    dojo.add_argument("--expected", choices=("allow", "deny"), required=True, help="caller-reviewed scenario label; never inferred from the run")
+    dojo.add_argument("--output", type=Path, required=True, help="private output suite (may include recorded argument values)")
     args = parser.parse_args(argv)
     try:
+        if args.command == "import-agentdojo":
+            if args.output.resolve() in (args.run.resolve(), args.policy_suite.resolve()):
+                raise SuiteError("refusing to overwrite the AgentDojo run or policy suite")
+            policy = load_suite(args.policy_suite)["policy"]
+            suite = import_agentdojo_run(
+                load_json_document(args.run),
+                policy=policy,
+                case_id=args.case_id,
+                expected=args.expected,
+            )
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(suite, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            print(
+                f"Imported {len(suite['cases'][0]['trace'])} recorded AgentDojo tool calls. "
+                "Expected label is caller-provided, not inferred from the benchmark's utility/security flags. "
+                "No calls were executed. Output may contain sensitive arguments; redact before sharing."
+            )
+            return 0
         if args.command == "import-swe":
             if args.output.resolve() in (args.row.resolve(), args.policy_suite.resolve()):
                 raise SuiteError("refusing to overwrite the source SWE row or policy suite")

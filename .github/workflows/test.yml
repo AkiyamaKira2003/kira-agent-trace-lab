@@ -36,3 +36,7 @@ jobs:
         run: |
           python -m agent_trace_lab import-swe examples/swe_recorded_row_synthetic.json --policy-suite examples/swe_structural_policy.json --case-id ci_swe_trace --expected allow --output artifacts/ci_swe_trace.json
           python -m agent_trace_lab evaluate artifacts/ci_swe_trace.json
+      - name: Synthetic AgentDojo tool-call import and evaluation
+        run: |
+          python -m agent_trace_lab import-agentdojo examples/agentdojo_recorded_synthetic.json --policy-suite examples/agentdojo_policy_simulated_scope.json --case-id ci_dojo_trace --expected allow --output artifacts/ci_dojo_trace.json
+          python -m agent_trace_lab evaluate artifacts/ci_dojo_trace.json

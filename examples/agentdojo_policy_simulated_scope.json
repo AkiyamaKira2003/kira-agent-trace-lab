@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "policy": {
+    "max_actions": 5,
+    "tools": {
+      "get_current_day": {},
+      "search_calendar_events": {}
+    }
+  },
+  "cases": [
+    {"id": "policy_carrier", "expected": "allow", "trace": []}
+  ]
+}
