@@ -33,6 +33,8 @@ The two adapted data records are **CC BY 4.0**, not MIT; source, authors, licens
 
 An additional [independent-label provenance review](docs/INDEPENDENT_AUTHORIZATION_LABELING.md) distinguishes external authors' synthetic scenario labels from authenticated user grants. Its optional, bounded source checker verifies two upstream record hashes and step annotations. Both records **abstain** from real human-authorization judgments and are **ineligible** for real-world authorization precision/recall metrics.
 
+A separate [pinned AgentDojo task-boundary case study](docs/AGENTDOJO_SIMULATED_BOUNDARY.md) independently verifies one benign and one attacked **recorded** run against the original benchmark's task definitions. The attacked run includes an extra send-email action outside the simulated user's calendar lookup request. This is one selected simulation case, **not** authenticated human consent or a measured safety rate.
+
 ## Task-bound grant matching (v0.3, opt-in)
 
 Schema **1.1** adds an optional task-authorization audit for selected high-impact tools while preserving schema **1.0**. An auditor supplies independent exact-action grant records for a case; the checker rejects guarded calls without a matching, unconsumed grant.
