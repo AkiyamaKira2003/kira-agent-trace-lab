@@ -17,7 +17,9 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-007 | NOT_STARTED | Qualified portfolio showcase | ATL-006 | Actual demonstration and evidence, no KiraShop regression | 20m |
 | ATL-008 | DONE | Import read-only OpenTelemetry execute_tool spans | ATL-003 | #1 closed by merged PR #2; single-trace parsing, missing-argument rejection; 29 unit tests and PR CI 4/4 PASS | 25m |
 | ATL-004A | DONE | Attribute external AgentDrift *synthetic* examples, expose semantic policy gap | ATL-003 | PR #4 merged, issue #3 closed; 31 tests, GitHub CI 4/4 PASS | 25m |
-| ATL-009 | IN_PROGRESS | Opt-in schema 1.1 with deterministic task-bound grants and negative controls | ATL-004A | Issue #5; ADR + implementation; local tests 49/49 PASS; GitHub CI/release pending | 20m |
+| ATL-009 | DONE | Opt-in schema 1.1 with deterministic task-bound grants and negative controls | ATL-004A | Issue #5 CLOSED by merged PR #6; 50 local tests PASS; GitHub CI 4/4 PASS; v0.3.0 release | 20m |
+| ATL-010 | DONE | Audit real benchmark-run trajectory sources, schema and reuse limits | ATL-004A | Pinned NVIDIA/Nebius revisions, licenses, 1 sampled NVIDIA row structure; see source audit | 20m |
+| ATL-011 | IN_PROGRESS | Offline importer for one SWE-style recorded tool-call row | ATL-010 | [Issue #7](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/7); no API inference, strict parser + CLI and tests | 25m |
 
 Local baseline **2026-11-20**: Python 3.12.10, **11 unit tests passed**, **8/8 example labels matched**; no claim of real-agent benchmark performance.
 
@@ -49,3 +51,21 @@ Released version **v0.2.0** remains available at `https://github.com/AkiyamaKira
 - ATL-009b local implementation: 1.1 schema + optional case grants, deny on missing grant, exact JSON matching, unique grant IDs, single-use consumption, no grant override for other restrictions, legacy 1.0 preserved; 49/49 unit tests PASS, 9/9 synthetic grant fixture labels match.
 - **Important limitation:** source_ref is an unauthenticated reference. This evaluator cannot prove user approval, and does not authenticate caller, origin, temporal validity, or task identity. No real-agent benchmark claims.
 - **NEXT_ACTION:** finish package/CLI smoke, Git diff and credential scan, push branch and open PR; verify GitHub Actions Windows/Linux before merging. Then re-run merged-main tests and issue a v0.3.0 release only if package and CI pass. Continue ATL-004 real-world research independently after shipping.
+
+### Verified release checkpoint — v0.3.0 / 2026-11-20
+
+- KIRAA / KPC Core; project root `C:\Projects\kira-agent-trace-lab`, no KPC state / registration (no governance initialization).
+- ATL-009 design `6410232` and implementation `ec233bc` merged through [PR #6](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/pull/6); [issue #5](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/5) CLOSED.
+- Verified merge commit `4e116c9354b38de32a754245091922c3087f7779`; `main` clean immediately after merge.
+- Local Python 3.12 tests 50/50 PASS; task grant synthetic fixtures 9/9 labels match; schema 1.0 regression and OTLP import work.
+- GitHub Actions [PR run 44679938471](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/actions/runs/44679938471) 4/4 PASS on Windows/Ubuntu and Python 3.10/3.12. Merged-main run `44680110966` successful.
+- Official [v0.3.0 release](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/releases/tag/v0.3.0), wheel built from merged `main`, installed in isolated target and CLI smoke-tested; SHA-256 `aa58c36f26518b008684590296468460717fa8a3bb27a698ebe6f39f88f5f955`.
+- **Critical limit:** no cryptographic verification or trustworthy issuance of `source_ref` grants, no live authorization enforcement. Only self-authored task-grant tests and third-party synthetic AgentDrift cases; no statistically representative agent-safety benchmark.
+- **NEXT_ACTION (ATL-004):** find a public, explicitly licensed dataset of **recorded tool executions from real benchmark runs** (not merely generated synthetic narratives). Record pinned source commit, source license and reuse conditions, event format, and which author-provided labels—if any—match this evaluator's policy semantics. Only then implement a small offline adapter or independent QA fixture. Do not make KiraShop changes until evidence supports a useful showcase.
+
+### External recorded-trajectory source audit — 2026-11-20
+
+- [Audit source/reuse/format](RECORDED_TRACE_SOURCE_AUDIT_20261120.md) confirms NVIDIA Open-SWE-Traces CC BY 4.0, pinned Hugging Face HEAD `4fa4c2ae9afc6b397bc50391d43450c79993c138`; inspected one benchmark-run row with 97 messages and 48 tool calls. Raw model actions are **not committed**.
+- Source `resolved` field measures task completion, not unauthorized action; no independent task-authorization labels have been established. ATL-004 therefore remains **IN_PROGRESS**.
+- A deeper upstream argument check encountered HTTP 502; this does **not** count as validated event parsing. Another candidate, Nebius SWE-agent-trajectories, has extra model-output/repository-license considerations.
+- **NEXT_ACTION:** ATL-011, [Issue #7](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/7) — implement read-only import of user-supplied single JSON row; strict bounds and schema validation; negative tests; deterministic normalizer. Test against a synthetic format fixture before trying a pinned, licensed external row. Never execute tools or infer authorization from task resolution.
