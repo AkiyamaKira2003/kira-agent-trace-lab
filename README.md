@@ -18,14 +18,17 @@ Verify the artifact against its attached SHA256SUMS.txt. This **does not**
 replace v0.4.0 as latest stable, establish real-user authorization
 labels or qualify any security-product claims.
 
-Development main after the published v0.5.0.dev0 tag uses the
-**distinct, unreleased 0.5.0.dev1 package version** for new source builds.
-For the exact published research artifact and its SHA-256, use the
-tagged v0.5.0.dev0 release above rather than rebuilding from main.
-The [v0.5.0.dev1 research-only prerelease candidate notes](docs/RELEASE_NOTES_V050_DEV1.md)
-and [conditional evidence gate](docs/RELEASE_GATE_004AI.md)
-document later changes and still-unverified security/reviewer gates.
-This is a release candidate, **not yet a published version**.
+The newer [v0.5.0.dev1 research-only GitHub prerelease](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/releases/tag/v0.5.0.dev1)
+includes five import commands across four trace-format families,
+safe saved reports and privacy-limited summary options. Install its
+**actual attached wheel** with
+`python -m pip install ./kira_agent_trace_lab-0.5.0.dev1-py3-none-any.whl`
+after verifying the release's SHA256SUMS.txt, rather than assuming
+that rebuilding the current development branch reproduces the tag.
+The [published dev1 research notes](docs/RELEASE_NOTES_V050_DEV1.md)
+and [evidence gate](docs/RELEASE_GATE_004AI.md) explicitly retain all
+unverified real-user grants and external security-review conditions.
+Both dev0 and dev1 remain prereleases; v0.4.0 is still Latest stable.
 
 A source-distribution archive (.tar.gz) is an **installable code-only
 artifact**, not a substitute for cloning the Git repository: it intentionally

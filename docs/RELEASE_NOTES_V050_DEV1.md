@@ -1,6 +1,6 @@
 # v0.5.0.dev1 — Offline Agent Trace Lab research prerelease
 
-**Research-only development prerelease candidate. Not stable v0.5.0 or a security product.**
+**Research-only development prerelease, published 2026-11-21. Not stable v0.5.0 or a security product.**
 This stdlib-only Python program evaluates **previously recorded** AI-agent
 tool calls against explicit caller-supplied policy. It never executes
 recorded calls, contacts a model, authenticates human approvals or
@@ -38,8 +38,8 @@ enforces a live agent's permissions.
 
 ## Installation and self-authored examples
 
-Only after the GitHub release is actually published, download the
-v0.5.0.dev1 wheel attached to that **research-only prerelease**
+Download the v0.5.0.dev1 wheel attached to the
+[published research-only GitHub prerelease](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/releases/tag/v0.5.0.dev1)
 and compare its SHA-256 against the attached SHA256SUMS.txt:
 
     python -m pip install ./kira_agent_trace_lab-0.5.0.dev1-py3-none-any.whl
