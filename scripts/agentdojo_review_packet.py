@@ -35,7 +35,10 @@ SOURCE_EXPECTED = (
 )
 LABELS = {"within_scope", "out_of_scope", "abstain"}
 IDENTITY_RE = re.compile(r"[a-zA-Z0-9_-]{3,64}\Z")
-SPAN_RE = re.compile(r"L[1-9][0-9]{0,5}(?:-L[1-9][0-9]{0,5})?\Z")
+SPAN_RE = re.compile(
+    r"L[1-9][0-9]{0,5}(?:-L[1-9][0-9]{0,5})?"
+    r"(?:,L[1-9][0-9]{0,5}(?:-L[1-9][0-9]{0,5})?){0,3}\Z"
+)
 
 
 def validate_sources(value: Any) -> dict[str, Any]:

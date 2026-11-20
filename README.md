@@ -120,6 +120,8 @@ The follow-up [preregistered stratified study](docs/AGENTDOJO_STRATIFIED_REVIEW.
 
 ATL-004H adds a [privacy-minimized review packet and provisional agreement gate](docs/AGENTDOJO_REVIEW_PACKET.md). Its four pinned original task-source files match SHA-256, and the generated packet preserves 24 slots / 20 available / four missing with **48 action names/ordinals only**, excluding prompts, recipients, argument values and publisher result flags. Run `python -m scripts.agentdojo_review_packet --check-upstream` for the optional source audit, or `python -m scripts.agentdojo_review_packet --write-packet docs/agentdojo_review_packet.json` to create a non-overwriting metadata packet. A local `--reviews` input may produce **provisional** agreement counts, but cannot authenticate actual reviewer identities or verify cited source meaning: **zero independent agreement is accepted, and human-grant labels remain abstain**.
 
+An optional source-span provenance auditor (`python -m scripts.agentdojo_span_provenance --digest-span banking L5-L7`, or `--reviews` with a private v2 submission) checks exact cited line bytes against the same pinned task-source SHA. It rejects fabricated or overlapping citations, but **does not** verify reviewer identity, semantic authorization or consent. See the review-packet documentation for limits and inputs.
+
 ## Design
 
 An input JSON suite has:

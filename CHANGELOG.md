@@ -9,6 +9,7 @@
 - Introduce a predeclared, source-pinned **cross-suite sampling** manifest and bounded audit (banking/workspace × no-injection/injection-attempt): source listing and four SHA-256 verified recorded runs, twelve negative/positive tests and explicit abstentions for all real-user authorization labels. No model safety detection rate is claimed.
 - Preregister a broader 24-slot, four-suite/three-condition AgentDojo study in Git before recording new outcomes. Add bounded source audit and source-hash metadata manifest: 20 present, 4 explicitly missing Slack `injection_task_0` records, zero independent reviews, 24 simulated-scope reviews pending and 24 genuine-human-grant abstentions. Do not silently substitute attack IDs or infer human grants from exposures.
 - Add ATL-004H privacy-minimized AgentDojo review packet: source-hash verification for four original task-code files, 48 action-name/ordinal entries retaining all 24 planned slots, and fail-closed **provisional-only** dual-review structural checks. No task prompts, arguments, recipients, publisher outcomes, authenticated reviewers or accepted agreement are claimed.
+- Add ATL-004I opt-in exact-byte task-source span SHA verification for private review citations, with bounded immutable source downloads, nonoverlap/line limits and negative tests. Verified citation bytes are not evidence of independent human reviewers, semantic authorization or genuine consent.
 
 ## v0.4.0 — 2026-11-20
 
