@@ -73,7 +73,7 @@ Both inputs are **self-authored synthetic structural fixtures**, not copied benc
 
 Validation rejects missing/malformed JSON arguments, ambiguous non-assistant calls, unsupported tool-call envelopes, empty traces and excessive lengths. Both existing schema 1.0 and opt-in 1.1 policies work, but the importer never manufactures user-grant evidence. Real argument values can be sensitive; `artifacts/` is ignored by Git. **No raw public-dataset conversations should be committed without careful rights and privacy review.**
 
-Provenance research: [NVIDIA Open-SWE-Traces source audit](docs/RECORDED_TRACE_SOURCE_AUDIT_20261120.md). A complete **recorded benchmark-run** preview row was later imported successfully (48 tool calls, no execution); its bytes matched an independently repeated `/first-rows` response with `X-Revision` equal to the pinned Hub commit. This verifies **external format interoperability and server-reported preview revision**, but **not** independent reconstruction from revision-pinned Parquet, nor real-world authorization accuracy. The importer remains experimental, not a supported production integration or an AI-security benchmark.
+Provenance research: [NVIDIA Open-SWE-Traces source audit](docs/RECORDED_TRACE_SOURCE_AUDIT_20261120.md). A complete **recorded benchmark-run** preview row was imported successfully (48 tool calls, no execution). Its preview bytes and `X-Revision` matched the saved sample and pinned Hub commit. A second, independently retrieved sample of the **relevant identity, role and tool-action columns from revision-pinned source Parquet** reproduced the same ordered 48 tool calls and exact argument objects. This proves *recorded-action interoperability* at that source revision, but **not** byte-level equivalence of the entire conversation row or any real-world authorization accuracy. The importer remains experimental, not a runtime security control.
 
 To recheck provenance when the private, Git-ignored sample is available, run this optional **research-only** script. It fetches metadata and a bounded public preview; it never publishes raw messages, downloads 200+ MB shards or executes recorded actions:
 
@@ -82,6 +82,16 @@ python scripts/audit_hf_preview_revision.py --local-row artifacts/open_swe_v1_sw
 ```
 
 `SERVER_ATTESTED_PREVIEW_MATCH` does **not** claim cryptographic provenance of the preview contents. Unlike the offline evaluator/CLI, this explicitly invoked research script requires internet access; it is not part of the installed package.
+
+For an **independent pinned-Parquet action check**, install optional PyArrow 21 into the already ignored `artifacts/` area and execute the read-only, capped 20 MiB ranged-column audit. It verifies the exact importer-relevant fields, not message content, model reasoning or the full original JSON row:
+
+```sh
+python -m pip install --target artifacts/rowproof_deps --no-deps pyarrow==21.0.0
+# macOS/Linux:
+PYTHONPATH=artifacts/rowproof_deps python -m scripts.audit_hf_pinned_parquet_actions --local-row artifacts/open_swe_v1_sweagent_firstrow_private.json
+```
+
+On Windows PowerShell, use `$env:PYTHONPATH = (Resolve-Path artifacts/rowproof_deps).Path` before running `python -m scripts.audit_hf_pinned_parquet_actions --local-row artifacts/open_swe_v1_sweagent_firstrow_private.json`. Both research audit scripts are separate from the dependency-free evaluator; neither forwards the raw row, executes recorded tools or generates authorization ground truth.
 
 ## Design
 
