@@ -2,6 +2,10 @@
 
 ## Unreleased (0.5.0.dev1 development; not in published v0.5.0.dev0)
 
+- ATL-004AG: optional compare-policies --output text/JSON report using
+  the existing atomic no-clobber writer, explicit --overwrite and
+  both-source file protection. Preserves original stdout and exit 0,
+  including case-ID pseudonymization, with installed-wheel checks.
 - ATL-004AF: add a strictly bounded offline import-responses-sequence
   command for a caller-authored ordered array of completed Responses
   API objects. Reject duplicate response/call IDs, inconsistent explicit

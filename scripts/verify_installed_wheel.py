@@ -488,6 +488,48 @@ def run(wheel: Path) -> dict[str, Any]:
                 or "unrequested_forward" in json.dumps(alias_delta)
                 or "unrequested@example.invalid" in json.dumps(alias_delta)):
             raise SuiteError("installed privacy mode did not redact case identifiers")
+        # Actual installed console and module: compare report publication
+        # must be identical to prior stdout and must fail closed on rerun.
+        for fmt in ("json", "text"):
+            compare_args = [
+                "compare-policies", "demo_permissive.json",
+                "--candidate-policy", "compare_candidate_task_guarded.json",
+                "--format", fmt, "--redact-case-ids",
+            ]
+            existing_stdout = _execute(
+                [sys.executable, "-S", "-m", "agent_trace_lab", *compare_args],
+                work, env,
+            )
+            saved_name = f"installed_policy_delta_{fmt}.txt"
+            stored_args = [*compare_args, "--output", saved_name]
+            _execute([str(launcher), *stored_args], work, env)
+            original = (work / saved_name).read_text(encoding="utf-8")
+            if (original != existing_stdout
+                    or "case_0001" not in original
+                    or "unrequested_forward" in original
+                    or "unrequested@example.invalid" in original):
+                raise SuiteError("installed saved policy comparison differs or leaks case data")
+            _execute(
+                [sys.executable, "-S", "-m", "agent_trace_lab", *stored_args],
+                work, env, expected_exit=2,
+            )
+            _execute([str(launcher), *stored_args], work, env, expected_exit=2)
+            _execute([str(launcher), *stored_args, "--overwrite"], work, env)
+            if (work / saved_name).read_text(encoding="utf-8") != original:
+                raise SuiteError("installed policy report was replaced unexpectedly")
+        for protected in ("demo_permissive.json", "compare_candidate_task_guarded.json"):
+            before = (work / protected).read_bytes()
+            _execute(
+                [str(launcher), "compare-policies", "demo_permissive.json",
+                 "--candidate-policy", "compare_candidate_task_guarded.json",
+                 "--output", protected, "--overwrite"],
+                work, env, expected_exit=2,
+            )
+            if (work / protected).read_bytes() != before:
+                raise SuiteError("installed policy report modified its input")
+        if (untouched.read_bytes() != sentinel
+                or list(work.glob(".agent-trace-compare-*.tmp"))):
+            raise SuiteError("installed compare modified unrelated files or left temporary files")
         # Synthetic untrusted property name must never surface in the
         # installed module or console stderr. Keep this file temporary.
         private_marker = "PRIVATE_SYNTHETIC_JSON_KEY_98765"
@@ -519,6 +561,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_console_matches_module_results": True,
         "installed_policy_delta_comparison_verified": True,
         "installed_policy_delta_case_id_redaction_verified": True,
+        "installed_policy_delta_atomic_report_output_verified": True,
         "installed_schema_diagnostics_redacted": True,
         "installed_import_output_no_clobber_verified": True,
         "installed_evaluation_output_no_clobber_verified": True,

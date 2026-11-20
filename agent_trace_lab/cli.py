@@ -76,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
     compare.add_argument("--candidate-policy", type=Path, required=True,
                          help="JSON object containing schema_version and policy only")
     compare.add_argument("--format", choices=("text", "json"), default="text")
+    compare.add_argument("--output", type=Path, help="write report to a NEW file instead of stdout")
+    compare.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular report file")
     compare.add_argument(
         "--redact-case-ids", action="store_true",
         help="replace case IDs with deterministic per-report ordinals for sharing",
@@ -137,28 +139,43 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
         if args.command == "compare-policies":
+            if args.output and args.output.resolve() in (
+                args.suite.resolve(), args.candidate_policy.resolve(),
+            ):
+                raise SuiteError("refusing to overwrite baseline suite or candidate policy")
             report = compare_policies(
                 load_suite(args.suite), load_json_document(args.candidate_policy),
                 redact_case_ids=args.redact_case_ids,
             )
             if args.format == "json":
-                print(json.dumps(report, indent=2, ensure_ascii=False))
+                display = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
             else:
                 counts = report["summary"]
-                print(
+                lines = [
                     f"Policy decisions changed: {counts['changed']}/{counts['total_cases']} "
                     f"(allow->deny={counts['allow_to_deny']}, "
                     f"deny->allow={counts['deny_to_allow']}). "
                     f"Candidate ignored grant records: {counts['candidate_ignored_grant_cases']}."
-                )
+                ]
                 for case in report["cases"]:
                     status = "CHANGED" if case["changed"] else "SAME"
-                    print(
+                    lines.append(
                         f"{status} {case['id']}: "
                         f"baseline={case['baseline']} candidate={case['candidate']} "
                         f"baseline_codes={','.join(case['baseline_codes']) or 'none'} "
                         f"candidate_codes={','.join(case['candidate_codes']) or 'none'}"
                     )
+                display = "\n".join(lines) + "\n"
+            if args.output:
+                try:
+                    _write_complete_output(
+                        args.output, display, overwrite=args.overwrite,
+                        prefix=".agent-trace-compare-",
+                    )
+                except OSError as exc:
+                    raise SuiteError("unable to safely write policy comparison report") from exc
+            else:
+                print(display, end="")
             return 0  # A policy difference is a result, not an execution failure.
         if args.command == "import-responses":
             if args.output.resolve() in (args.response.resolve(), args.policy_suite.resolve()):
