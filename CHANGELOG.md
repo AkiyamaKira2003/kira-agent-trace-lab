@@ -2,6 +2,7 @@
 
 ## Unreleased (0.5.0.dev0 development; not in v0.4.0 wheel)
 
+- ATL-004Z: optional compare-policies --redact-case-ids mode with stable per-report aliases, preserving verdicts while omitting original case IDs from text/JSON; explicit limits and installed CLI parity tests.
 - ATL-004Y: compare identical offline recorded cases under baseline versus candidate policy-only documents, displaying deterministic allow/deny transitions and reason codes without argument values or invented authorization/accuracy claims. Installed console/module parity and multi-platform CI verified.
 - ATL-004X: introduce bounded read-only OpenAI Responses API function_call output import from one completed locally saved response. Preserve order and JSON arguments, reject unsupported hosted/partial calls, never infer approval, and verify installed wheel and source archive with synthetic fixtures.
 - ATL-004W: independently smoke-test the installed module and console launcher on all three trace import formats for default no-clobber exit 2, explicit --overwrite, exact on-disk output integrity and no unrelated or temporary file changes.

@@ -89,6 +89,18 @@ cases whose schema 1.1 grant records were inapplicable and ignored.
 Case identifiers themselves remain visible, so never use sensitive
 case IDs in reports intended to be public.
 
+ATL-004Z adds an **opt-in** case-ID pseudonymization mode. For reports
+you intend to share, append --redact-case-ids to the command above.
+The example's original case ID is replaced by case_0001, with
+unchanged policy verdicts and reason codes. The alias order is
+deterministic for the same case ordering; two unrelated reports should
+**not** be joined on ordinal aliases. Input files remain unchanged,
+and the default remains backward compatible with original IDs.
+This mode does not scrub the source trace, identify sensitive
+information in arbitrary strings, guarantee anonymity or verify
+genuine user approval. Invalid input and malicious data still need
+private handling and review before disclosure.
+
 ## Verify the installed development wheel instead of trusting the checkout
 
 From this repository with Python 3.10+:

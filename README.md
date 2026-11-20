@@ -74,6 +74,11 @@ returns changed decisions, not accuracy or precision/recall scores.
 The fictional unrequested forward changes from allow to deny solely
 because the candidate requires a task grant. This comparison does
 **not** authenticate user consent or modify any source file.
+To share a decision-only report without exposing case identifiers,
+append **--redact-case-ids**. It replaces case IDs with stable
+per-report ordinal aliases such as case_0001 while preserving decisions.
+This is **case-ID pseudonymization**, not anonymization of arbitrary
+trace contents, file paths or diagnostic errors.
 See the [policy delta verification](docs/POLICY_CONTRAST_DEMO.md).
 
 To verify these exact outcomes from an isolated installed development wheel,

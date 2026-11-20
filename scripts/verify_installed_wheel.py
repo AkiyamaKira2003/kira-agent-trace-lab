@@ -383,6 +383,21 @@ def run(wheel: Path) -> dict[str, Any]:
                 or module_delta["cases"][0]["candidate_codes"] != ["TASK_GRANT_REQUIRED"]
                 or "unrequested@example.invalid" in json.dumps(module_delta)):
             raise SuiteError("installed CLI policy delta comparison failed")
+        alias_delta = json.loads(_execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab",
+             *policy_delta_args, "--redact-case-ids"], work, env,
+        ))
+        console_alias_delta = json.loads(_execute(
+            [str(launcher), *policy_delta_args, "--redact-case-ids"],
+            work, env,
+        ))
+        if (alias_delta != console_alias_delta
+                or alias_delta["summary"] != module_delta["summary"]
+                or alias_delta["cases"][0]["id"] != "case_0001"
+                or module_delta["cases"][0]["id"] == alias_delta["cases"][0]["id"]
+                or "unrequested_forward" in json.dumps(alias_delta)
+                or "unrequested@example.invalid" in json.dumps(alias_delta)):
+            raise SuiteError("installed privacy mode did not redact case identifiers")
         # Synthetic untrusted property name must never surface in the
         # installed module or console stderr. Keep this file temporary.
         private_marker = "PRIVATE_SYNTHETIC_JSON_KEY_98765"
@@ -413,6 +428,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_console_launcher_verified": True,
         "installed_console_matches_module_results": True,
         "installed_policy_delta_comparison_verified": True,
+        "installed_policy_delta_case_id_redaction_verified": True,
         "installed_schema_diagnostics_redacted": True,
         "installed_import_output_no_clobber_verified": True,
         "installed_import_explicit_overwrite_verified": True,

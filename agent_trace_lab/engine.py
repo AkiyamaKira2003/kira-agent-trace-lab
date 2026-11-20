@@ -131,6 +131,7 @@ def evaluate_suite(suite: dict[str, Any]) -> dict[str, Any]:
 
 def compare_policies(
     baseline_suite: dict[str, Any], candidate_document: dict[str, Any],
+    *, redact_case_ids: bool = False,
 ) -> dict[str, Any]:
     """Compare decisions for identical recorded cases without trusting labels.
 
@@ -138,7 +139,19 @@ def compare_policies(
     Expected case labels never influence the comparison. No raw arguments,
     tool names or grant evidence are included in the result.
     """
-    before = evaluate_suite(baseline_suite)
+    if type(redact_case_ids) is not bool:
+        raise ValueError("redact_case_ids must be a boolean")
+    if redact_case_ids:
+        # Validate before replacing IDs, so malformed input never becomes
+        # valid through rewriting. Evaluate only aliases, including on
+        # error paths in guarded tool argument validation.
+        validate_suite(baseline_suite)
+        source_suite = copy.deepcopy(baseline_suite)
+        for index, case in enumerate(source_suite["cases"]):
+            case["id"] = f"case_{index + 1:04d}"
+    else:
+        source_suite = baseline_suite
+    before = evaluate_suite(source_suite)
     candidate_document = _keys(
         candidate_document, "candidate_policy", {"schema_version", "policy"},
     )
@@ -149,7 +162,7 @@ def compare_policies(
         "policy": candidate_policy,
         "cases": [{"id": "candidate_schema_check", "expected": "allow", "trace": []}],
     })
-    candidate_cases = copy.deepcopy(baseline_suite["cases"])
+    candidate_cases = copy.deepcopy(source_suite["cases"])
     ignored_grants = 0
     if candidate_version == "1.0":
         # Schema 1.0 does not understand grants. Make the loss explicit
@@ -184,7 +197,7 @@ def compare_policies(
             "candidate_codes": sorted({item["code"] for item in proposed["violations"]}),
         })
     return {
-        "baseline_schema_version": baseline_suite["schema_version"],
+        "baseline_schema_version": source_suite["schema_version"],
         "candidate_schema_version": candidate_version,
         "summary": {
             "total_cases": len(cases),
