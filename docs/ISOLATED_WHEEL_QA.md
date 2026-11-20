@@ -7,11 +7,10 @@ release, a security certification or an AI-agent performance benchmark.
 
 ## Reproduction on Windows, Linux or macOS
 
-From the existing source repository, with Python 3.10+ and its declared
-`setuptools>=68` build backend already installed:
+From the existing source repository, with Python 3.10+:
 
 ```sh
-python -m pip wheel --no-deps --no-build-isolation --wheel-dir artifacts/qa-wheel .
+python -m pip wheel --no-deps --wheel-dir artifacts/qa-wheel .
 python -m scripts.verify_installed_wheel --wheel-dir artifacts/qa-wheel
 python -m unittest discover -s tests -q
 ```
@@ -58,6 +57,12 @@ console commands. The existing stable v0.4.0 release is unchanged;
 not been published as a stable release by this task.
 
 Wheel build reproducibility at the **byte-identical** level across
-all machines is not asserted by this check. The build backend must be
-available locally; `--no-build-isolation` avoids downloading dependencies
-for the build command, while installed runtime smoke uses `--no-index`.
+all machines is not asserted by this check. During **wheel construction**,
+pip's isolated PEP 517 build environment may download the declared
+`setuptools>=68` backend. This avoids depending on stale or missing
+preinstalled build tools (observed on Windows Python 3.10 and Python 3.12
+runners). `--no-deps` disables runtime dependency resolution, while
+the **installed-wheel smoke itself** uses `--no-index --no-deps` and
+does not fetch dependencies. An intentionally offline *build* is possible
+using `--no-build-isolation` only after independently installing a
+compatible build backend.
