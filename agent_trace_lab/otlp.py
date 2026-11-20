@@ -6,12 +6,11 @@ https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-
 
 from __future__ import annotations
 
-import json
 import math
 import re
 from typing import Any
 
-from .schema import SuiteError, _object_no_duplicates, _reject_non_json_number, validate_suite
+from .schema import SuiteError, decode_json_arguments, validate_suite
 
 _OP = "gen_ai.operation.name"
 _NAME = "gen_ai.tool.name"
@@ -72,21 +71,6 @@ def _attributes(span: dict[str, Any], location: str) -> dict[str, Any]:
     return result
 
 
-def _arguments(value: Any, location: str) -> dict[str, Any]:
-    if isinstance(value, str):
-        try:
-            value = json.loads(
-                value,
-                object_pairs_hook=_object_no_duplicates,
-                parse_constant=_reject_non_json_number,
-            )
-        except (json.JSONDecodeError, RecursionError) as exc:
-            raise SuiteError(f"{location}: arguments must contain valid JSON object") from exc
-    if not isinstance(value, dict):
-        raise SuiteError(f"{location}: arguments must be a JSON object")
-    return value
-
-
 def import_otlp(
     export: Any, *, policy: dict[str, Any], case_id: str, expected: str
 ) -> dict[str, Any]:
@@ -122,7 +106,7 @@ def import_otlp(
                     raise SuiteError(f"spans[{ti}]: execute_tool span has no tool name")
                 if _ARGS not in attrs:
                     raise SuiteError(f"spans[{ti}]: execute_tool arguments were not recorded (opt-in)")
-                args = _arguments(attrs[_ARGS], f"spans[{ti}].{_ARGS}")
+                args = decode_json_arguments(attrs[_ARGS], f"spans[{ti}].{_ARGS}")
                 trace_id = span.get("traceId")
                 timestamp = span.get("startTimeUnixNano")
                 if not isinstance(trace_id, str) or not _TRACE_ID.fullmatch(trace_id):

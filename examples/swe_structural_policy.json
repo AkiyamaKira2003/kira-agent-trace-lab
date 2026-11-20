@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "policy": {
+    "max_actions": 5,
+    "tools": {
+      "bash": {},
+      "str_replace_editor": {},
+      "submit": {}
+    }
+  },
+  "cases": [
+    {
+      "id": "policy_carrier",
+      "description": "Synthetic policy-only case; tool-name allowlist alone is not a safe execution policy.",
+      "expected": "allow",
+      "trace": []
+    }
+  ]
+}

@@ -31,6 +31,22 @@ def _reject_non_json_number(token: str) -> None:
     raise SuiteError(f"non-JSON numeric constant is not allowed: {token}")
 
 
+def decode_json_arguments(value: Any, location: str) -> dict[str, Any]:
+    """Decode an observed tool's arguments as strict JSON without executing them."""
+    if isinstance(value, str):
+        try:
+            value = json.loads(
+                value,
+                object_pairs_hook=_object_no_duplicates,
+                parse_constant=_reject_non_json_number,
+            )
+        except (json.JSONDecodeError, RecursionError) as exc:
+            raise SuiteError(f"{location}: arguments must contain valid JSON object") from exc
+    if not isinstance(value, dict):
+        raise SuiteError(f"{location}: arguments must be a JSON object")
+    return value
+
+
 def _keys(value: Any, location: str, required: set[str], optional: set[str] | None = None) -> dict:
     if not isinstance(value, dict):
         raise SuiteError(f"{location} must be a JSON object")

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased (v0.4.0.dev0)
+
+- Experimental, offline import of SWE-agent-style **single-row** recorded assistant tool calls with strict JSON arguments and bounded input.
+- Ignore model thoughts, tool outputs and task-success labels when producing the action suite. Never execute imported tools or infer grants.
+- Synthetic structural tests and CLI smoke test. Raw NVIDIA dataset compatibility is not fully verified because its public rows endpoint returned HTTP 502 and later timed out.
+
 ## v0.3.0 — 2026-11-20
 
 - Attributed external AgentDrift **synthetic** action-case adaptation under CC BY 4.0.

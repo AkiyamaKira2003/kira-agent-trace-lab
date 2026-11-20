@@ -10,6 +10,7 @@ from pathlib import Path
 from .engine import evaluate_suite
 from .schema import SuiteError, load_json_document, load_suite
 from .otlp import import_otlp
+from .swe import import_swe_row
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -25,8 +26,32 @@ def main(argv: list[str] | None = None) -> int:
     importer.add_argument("--case-id", required=True, help="unique ID for the imported case")
     importer.add_argument("--expected", choices=("allow", "deny"), required=True, help="human-provided ground truth label")
     importer.add_argument("--output", type=Path, required=True, help="output suite file (may contain sensitive arguments)")
+    swe = subcommands.add_parser("import-swe", help="convert a local recorded SWE tool-call row into a suite")
+    swe.add_argument("row", type=Path, help="a single saved JSON row, not a dataset API response envelope")
+    swe.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
+    swe.add_argument("--case-id", required=True, help="unique ID for the imported case")
+    swe.add_argument("--expected", choices=("allow", "deny"), required=True, help="caller-supplied label, never inferred from resolved")
+    swe.add_argument("--output", type=Path, required=True, help="output suite file (may contain sensitive arguments)")
     args = parser.parse_args(argv)
     try:
+        if args.command == "import-swe":
+            if args.output.resolve() in (args.row.resolve(), args.policy_suite.resolve()):
+                raise SuiteError("refusing to overwrite the source SWE row or policy suite")
+            policy = load_suite(args.policy_suite)["policy"]
+            suite = import_swe_row(
+                load_json_document(args.row),
+                policy=policy,
+                case_id=args.case_id,
+                expected=args.expected,
+            )
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(suite, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            print(
+                f"Imported {len(suite['cases'][0]['trace'])} recorded tool calls. "
+                "Label was caller-provided and is not independently verified. "
+                "The output contains arguments that may be sensitive; review/redact before sharing."
+            )
+            return 0
         if args.command == "import-otlp":
             if args.output.resolve() in (args.otlp.resolve(), args.policy_suite.resolve()):
                 raise SuiteError("refusing to overwrite the source OTLP or policy suite")

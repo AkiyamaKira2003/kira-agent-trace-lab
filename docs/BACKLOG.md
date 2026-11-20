@@ -19,7 +19,7 @@ Each task is scoped to an **estimated** 10–25 minutes; there is no actual elap
 | ATL-004A | DONE | Attribute external AgentDrift *synthetic* examples, expose semantic policy gap | ATL-003 | PR #4 merged, issue #3 closed; 31 tests, GitHub CI 4/4 PASS | 25m |
 | ATL-009 | DONE | Opt-in schema 1.1 with deterministic task-bound grants and negative controls | ATL-004A | Issue #5 CLOSED by merged PR #6; 50 local tests PASS; GitHub CI 4/4 PASS; v0.3.0 release | 20m |
 | ATL-010 | DONE | Audit real benchmark-run trajectory sources, schema and reuse limits | ATL-004A | Pinned NVIDIA/Nebius revisions, licenses, 1 sampled NVIDIA row structure; see source audit | 20m |
-| ATL-011 | IN_PROGRESS | Offline importer for one SWE-style recorded tool-call row | ATL-010 | [Issue #7](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/7); no API inference, strict parser + CLI and tests | 25m |
+| ATL-011 | IN_PROGRESS | Experimental offline importer for one SWE-style recorded tool-call row | ATL-010 | [Issue #7](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/7); 63/63 synthetic/local tests PASS, real-row E2E NOT_VERIFIED due endpoint errors | 25m |
 
 Local baseline **2026-11-20**: Python 3.12.10, **11 unit tests passed**, **8/8 example labels matched**; no claim of real-agent benchmark performance.
 
@@ -69,3 +69,11 @@ Released version **v0.2.0** remains available at `https://github.com/AkiyamaKira
 - Source `resolved` field measures task completion, not unauthorized action; no independent task-authorization labels have been established. ATL-004 therefore remains **IN_PROGRESS**.
 - A deeper upstream argument check encountered HTTP 502; this does **not** count as validated event parsing. Another candidate, Nebius SWE-agent-trajectories, has extra model-output/repository-license considerations.
 - **NEXT_ACTION:** ATL-011, [Issue #7](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/7) — implement read-only import of user-supplied single JSON row; strict bounds and schema validation; negative tests; deterministic normalizer. Test against a synthetic format fixture before trying a pinned, licensed external row. Never execute tools or infer authorization from task resolution.
+
+### Experimental importer checkpoint — 2026-11-20
+
+- Branch `feat/swe-recorded-trace-import` based on research commit `6379236390c507c75fa8c30402e8a892bab886e4`.
+- Local implementation `agent_trace_lab/swe.py` imports assistant function calls from a single JSON row; generic argument parser reused with OTLP; CLI `import-swe` requires an externally supplied label. No network or action execution.
+- Self-authored structural fixture and 13 new negative/positive unit tests; entire test suite **63/63 PASS**; synthetic CLI import and evaluation PASS.
+- Upstream NVIDIA sample envelope checked (48 calls), but HTTP 502 and subsequent timeout prevented external raw-data end-to-end validation. **EXTERNAL_E2E = NOT_VERIFIED**.
+- **NEXT_ACTION:** complete source/CLI QA, packaging, secret scan and CI for experimental implementation; document this caveat in PR. Merge only after synthetic/compatibility checks are green; keep true external-compatibility task separate and do **not** tag a production release based only on synthetic tests.
