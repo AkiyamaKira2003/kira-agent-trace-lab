@@ -93,6 +93,24 @@ class SourceSdistQATests(unittest.TestCase):
             with self.assertRaisesRegex(SuiteError, "differ"):
                 verify_sdist(archive)
 
+    def test_crlf_checkout_and_lf_archive_are_content_equivalent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = (ROOT / "README.md").read_bytes().replace(b"\r\n", b"\n")
+            other_eol = original.replace(b"\n", b"\r\n")
+            archive = make_source_archive(
+                Path(tmp), changed={"README.md": other_eol},
+            )
+            self.assertEqual(verify_sdist(archive)["status"], "SOURCE_SDIST_INVENTORY_PASS")
+
+    def test_stray_carriage_return_is_not_normalized_away(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = (ROOT / "MANIFEST.in").read_bytes()
+            archive = make_source_archive(
+                Path(tmp), changed={"MANIFEST.in": original + b"\rSECRET_EXTRA"},
+            )
+            with self.assertRaisesRegex(SuiteError, "stray carriage returns"):
+                verify_sdist(archive)
+
     def test_rejects_incorrect_license_and_version_declarations(self):
         for mutation in ("Version: 0.4.0", "License-Expression: Apache-2.0",
                          "Requires-Dist: unexpectedly-required-package"):

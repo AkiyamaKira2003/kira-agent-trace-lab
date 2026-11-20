@@ -32,6 +32,14 @@ REQUIRED_FILES = frozenset({
 })
 
 
+def _canonical_text_line_endings(raw: bytes) -> bytes:
+    """Git CRLF checkout differences are not source-content mutations."""
+    normalized = raw.replace(b"\r\n", b"\n")
+    if b"\r" in normalized:
+        raise SuiteError("source archive has unsupported stray carriage returns")
+    return normalized
+
+
 def verify_sdist(path: Path) -> dict[str, object]:
     version = source_project_version()
     root = f"kira_agent_trace_lab-{version}"
@@ -77,8 +85,11 @@ def verify_sdist(path: Path) -> dict[str, object]:
 
     for relative in ("LICENSE", "README.md", "pyproject.toml", "MANIFEST.in",
                      *(f"agent_trace_lab/{name}" for name in SOURCE_MODULES)):
-        if sources[relative] != (ROOT / relative).read_bytes():
-            raise SuiteError("source archive bytes differ from local source")
+        # Git's core.autocrlf may rewrite only LF/CRLF when switching
+        # checkouts on Windows. Reject all other source-content drift.
+        if (_canonical_text_line_endings(sources[relative])
+                != _canonical_text_line_endings((ROOT / relative).read_bytes())):
+            raise SuiteError("source archive content differs from local source")
     if (b"MIT License" not in sources["LICENSE"]
             or b"Permission is hereby granted" not in sources["LICENSE"]):
         raise SuiteError("source license notice missing")

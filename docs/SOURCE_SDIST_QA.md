@@ -31,9 +31,19 @@ The standard-library scripts/verify_source_sdist.py requires one
 archive with source-matching version and enforces limited compressed
 and unpacked sizes, member count, unique safe paths, no symlink or
 special-device entries, no source-only/private paths, a complete
-MIT license, original source byte equality for package files and
+MIT license, source content equality for package files (normalizing
+only Windows CRLF versus LF checkout line endings) and
 correct source metadata (name, version, Python range, links, zero
 runtime dependencies).
+
+ATL-004V confirmed that a previously verified archive could fail
+the original byte comparison after changing Git branches on KIRAA
+with core.autocrlf=true. The code and archive were unchanged, but
+README and MANIFEST.in worktree line endings differed. The auditor
+now considers only LF and CRLF equivalent; arbitrary carriage returns,
+content edits, removed fields and injected data still fail. This
+prevents incorrect failure claims when verifying an artifact across
+platforms or checkouts without weakening content-level validation.
 
 The audited KIRAA archive after the manifest fix contained **22
 entries** with zero forbidden research/private paths. The built
