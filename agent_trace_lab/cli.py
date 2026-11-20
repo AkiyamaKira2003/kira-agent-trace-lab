@@ -14,7 +14,7 @@ from .schema import SuiteError, load_json_document, load_suite
 from .otlp import import_otlp
 from .swe import import_swe_row
 from .agentdojo import import_agentdojo_run
-from .responses import import_responses_output
+from .responses import import_responses_output, import_responses_sequence
 
 
 def _write_complete_output(
@@ -108,8 +108,34 @@ def main(argv: list[str] | None = None) -> int:
     responses.add_argument("--expected", choices=("allow", "deny"), required=True, help="caller-supplied label, not inferred from model or tool output")
     responses.add_argument("--output", type=Path, required=True, help="private suite path (may include sensitive arguments)")
     responses.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output file")
+    sequence = subcommands.add_parser(
+        "import-responses-sequence",
+        help="convert a local ordered JSON array of completed Responses objects, without executing calls",
+    )
+    sequence.add_argument("responses", type=Path, help="app-authored JSON array of saved completed responses, NOT an API response envelope")
+    sequence.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
+    sequence.add_argument("--case-id", required=True, help="unique ID for the combined recorded case")
+    sequence.add_argument("--expected", choices=("allow", "deny"), required=True, help="caller-supplied label, never independently authenticated")
+    sequence.add_argument("--output", type=Path, required=True, help="private output suite path (may contain recorded arguments)")
+    sequence.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output")
     args = parser.parse_args(argv)
     try:
+        if args.command == "import-responses-sequence":
+            if args.output.resolve() in (args.responses.resolve(), args.policy_suite.resolve()):
+                raise SuiteError("refusing to overwrite the response sequence or policy suite")
+            suite = import_responses_sequence(
+                load_json_document(args.responses),
+                policy=load_suite(args.policy_suite)["policy"],
+                case_id=args.case_id, expected=args.expected,
+            )
+            _write_import_suite(args.output, suite, overwrite=args.overwrite)
+            print(
+                f"Imported {len(suite['cases'][0]['trace'])} recorded function calls "
+                "from a caller-ordered local response sequence. "
+                "Label is caller-provided, not authenticated. "
+                "No calls executed. Output may contain sensitive arguments."
+            )
+            return 0
         if args.command == "compare-policies":
             report = compare_policies(
                 load_suite(args.suite), load_json_document(args.candidate_policy),

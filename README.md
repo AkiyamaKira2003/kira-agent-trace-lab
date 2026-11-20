@@ -157,7 +157,8 @@ In a 1.1 policy, `task_guarded_tools` names must already be in the tool allowlis
 
 **Security boundary:** this offline evaluator **does not authenticate the user, validate source_ref or prove that a grant was genuinely issued**. A malicious party could fabricate a matching grant if permitted to author the suite. A separate trusted system must establish and protect actual approval evidence. Never use these evaluation results as authorization to execute real tools. See the [design and threat model](docs/TASK_AUTHORIZATION_DESIGN.md).
 
-All four recorded trace importers (OTLP, SWE, AgentDojo, Responses) refuse to
+All recorded trace import commands (OTLP, SWE, AgentDojo, single Responses
+and local Responses sequence) refuse to
 overwrite an existing output file by default. To repeat an import to
 the same destination, use a new filename or explicitly pass
 **--overwrite**. The opt-in replacement is atomic for regular files
@@ -179,6 +180,20 @@ are outside the supported envelope.
 
     python -m agent_trace_lab import-responses examples/responses_function_calls_synthetic.json --policy-suite examples/suite.json --case-id synthetic_responses --expected allow --output artifacts/responses_imported.json
     python -m agent_trace_lab evaluate artifacts/responses_imported.json
+
+For an application-authored **ordered JSON array of saved completed
+Responses objects**, use the separate import-responses-sequence command.
+The array is **not a native OpenAI API batch-response envelope**.
+The importer keeps complete function calls in declared array order,
+rejects duplicate response and function call IDs and rejects mismatched
+explicit previous_response_id links. An absent link does not prove
+causal connection or human approval. The entire archive is bounded
+to 2 MiB, 1–50 responses and at most 10,000 output items:
+
+    python -m agent_trace_lab import-responses-sequence examples/responses_sequence_synthetic.json --policy-suite examples/suite.json --case-id synthetic_sequence --expected allow --output artifacts/responses_sequence_imported.json
+    python -m agent_trace_lab evaluate artifacts/responses_sequence_imported.json
+
+See [the exact sequence archive contract](docs/RESPONSES_SEQUENCE_IMPORT.md).
 
 The fixture is entirely **self-authored** from the documented API shape;
 it is not a recorded user/model run. The expected label is caller-supplied,

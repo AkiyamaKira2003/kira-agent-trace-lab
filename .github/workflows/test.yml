@@ -52,6 +52,10 @@ jobs:
         run: |
           python -m agent_trace_lab import-responses examples/responses_function_calls_synthetic.json --policy-suite examples/suite.json --case-id ci_responses_trace --expected allow --output artifacts/ci_responses_trace.json
           python -m agent_trace_lab evaluate artifacts/ci_responses_trace.json
+      - name: Self-authored local Responses sequence import and evaluation
+        run: |
+          python -m agent_trace_lab import-responses-sequence examples/responses_sequence_synthetic.json --policy-suite examples/suite.json --case-id ci_responses_sequence --expected allow --output artifacts/ci_responses_sequence.json
+          python -m agent_trace_lab evaluate artifacts/ci_responses_sequence.json
       - name: Build project wheel with isolated declared build backend
         run: python -m pip wheel --no-deps --wheel-dir artifacts/ci-wheel .
       - name: Verify isolated wheel import, offline CLI, and package boundary
