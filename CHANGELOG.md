@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased (0.5.0.dev0 development; not in v0.4.0 wheel)
+## v0.5.0.dev0 — research-only prerelease candidate (not stable v0.5.0)
+
+This version is an explicitly limited research prerelease candidate:
+not an AI-agent runtime defense, authorization service, or independently
+validated prompt-injection detector. Synthetic fixtures and recorded
+policy decisions do not imply verified human approval or protection rates.
+See [research release notes](docs/RELEASE_NOTES_V050_DEV0.md) and
+[release gate](docs/RELEASE_GATE_004AA.md).
 
 - ATL-004Z: optional compare-policies --redact-case-ids mode with stable per-report aliases, preserving verdicts while omitting original case IDs from text/JSON; explicit limits and installed CLI parity tests.
 - ATL-004Y: compare identical offline recorded cases under baseline versus candidate policy-only documents, displaying deterministic allow/deny transitions and reason codes without argument values or invented authorization/accuracy claims. Installed console/module parity and multi-platform CI verified.
