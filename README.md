@@ -122,6 +122,8 @@ ATL-004H adds a [privacy-minimized review packet and provisional agreement gate]
 
 An optional source-span provenance auditor (`python -m scripts.agentdojo_span_provenance --digest-span banking L5-L7`, or `--reviews` with a private v2 submission) checks exact cited line bytes against the same pinned task-source SHA. It rejects fabricated or overlapping citations, but **does not** verify reviewer identity, semantic authorization or consent. See the review-packet documentation for limits and inputs.
 
+ATL-004J adds a [source-pinned task-intent feasibility matrix](docs/AGENTDOJO_TASK_SCOPE_FEASIBILITY.md). It summarizes **eight** source-reviewed AgentDojo tasks and preserves the **24 planned / 20 present / four missing** run denominator, without copying prompts, recipients or raw tool arguments. An offline `python -m scripts.audit_agentdojo_task_scope` check and an opt-in `--check-upstream` AST source check verify provenance. **Eleven nonreference tool-name occurrences are only reference-overlap observations, not unauthorized actions or attack detections**; every simulated-action and real-human-grant label remains `abstain`.
+
 ## Design
 
 An input JSON suite has:
