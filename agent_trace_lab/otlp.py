@@ -17,6 +17,7 @@ _NAME = "gen_ai.tool.name"
 _ARGS = "gen_ai.tool.call.arguments"
 _TRACE_ID = re.compile(r"^[a-fA-F0-9]{32}$")
 _SPAN_ID = re.compile(r"^[a-fA-F0-9]{16}$")
+_DECIMAL_TIMESTAMP = re.compile(r"^[0-9]{1,20}$")
 
 
 def _require_list(value: Any, location: str, limit: int) -> list:
@@ -139,7 +140,15 @@ def import_otlp(
                     or span_id == "0" * 16
                 ):
                     raise SuiteError(f"spans[{ti}]: execute_tool span requires a valid spanId")
-                if not isinstance(timestamp, str) or not timestamp.isdecimal() or not 1 <= len(timestamp) <= 20:
+                # OTLP/JSON fixed64 accepts decimal strings and JSON integers.
+                # Restrict both to the actual unsigned 64-bit wire range.
+                if type(timestamp) is int:
+                    time_ns = timestamp
+                elif isinstance(timestamp, str) and _DECIMAL_TIMESTAMP.fullmatch(timestamp):
+                    time_ns = int(timestamp)
+                else:
+                    raise SuiteError(f"spans[{ti}]: execute_tool span requires startTimeUnixNano")
+                if not 0 <= time_ns < (1 << 64):
                     raise SuiteError(f"spans[{ti}]: execute_tool span requires startTimeUnixNano")
                 trace_ids.add(trace_id.lower())
                 if len(trace_ids) > 1:
@@ -149,7 +158,7 @@ def import_otlp(
                     # Replayed/misidentified spans must not double-count tool calls.
                     raise SuiteError(f"spans[{ti}]: duplicate spanId in recorded execute_tool trace")
                 span_ids.add(normalized_span_id)
-                collected.append((int(timestamp), {"tool": name, "arguments": args}))
+                collected.append((time_ns, {"tool": name, "arguments": args}))
     if not collected:
         raise SuiteError("no execute_tool spans found; cannot infer an empty trace")
     # Ties retain exporter order. Concurrent execution cannot be fully ordered.

@@ -131,6 +131,76 @@ class OtlpTests(unittest.TestCase):
         with self.assertRaisesRegex(SuiteError, "startTimeUnixNano"):
             self._convert()
 
+    def test_timestamp_accepts_otlp_fixed64_json_number_and_boundaries(self) -> None:
+        baseline = self._convert()
+        for timestamp in (1795146000000000000, 0, (1 << 64) - 1):
+            with self.subTest(timestamp=timestamp):
+                changed = copy.deepcopy(self.export)
+                changed["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["startTimeUnixNano"] = timestamp
+                self.assertEqual(len(self._convert(changed)["cases"][0]["trace"]), 2)
+        numeric = copy.deepcopy(self.export)
+        for span in numeric["resourceSpans"][0]["scopeSpans"][0]["spans"][1:]:
+            span["startTimeUnixNano"] = int(span["startTimeUnixNano"])
+        self.assertEqual(self._convert(numeric), baseline)
+
+    def test_timestamp_rejects_out_of_uint64_and_non_ascii_digits(self) -> None:
+        bad_timestamps = (
+            str(1 << 64), 1 << 64, -1, "-1", True, 1.25,
+            "١٧٩٥١٤٦٠٠٠٠٠٠٠٠٠٠٠", "0" * 21, "1.0",
+        )
+        for timestamp in bad_timestamps:
+            with self.subTest(kind=type(timestamp).__name__):
+                changed = copy.deepcopy(self.export)
+                changed["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["startTimeUnixNano"] = timestamp
+                with self.assertRaisesRegex(SuiteError, "startTimeUnixNano"):
+                    self._convert(changed)
+
+    def test_cli_invalid_timestamp_fails_closed_without_leaking(self) -> None:
+        marker = "SYNTHETIC_PRIVATE_TIMESTAMP_ARG"
+        spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        spans[1]["startTimeUnixNano"] = str(1 << 64)
+        spans[1]["attributes"][2]["value"] = {
+            "stringValue": json.dumps({"path": marker}),
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "overflow_timestamp.json"
+            dest = Path(tmp) / "converted.json"
+            source.write_text(json.dumps(self.export), encoding="utf-8")
+            proc = subprocess.run(
+                [
+                    sys.executable, "-m", "agent_trace_lab", "import-otlp",
+                    str(source), "--policy-suite", str(POLICY),
+                    "--case-id", "overflow", "--expected", "allow",
+                    "--output", str(dest),
+                ],
+                cwd=ROOT, capture_output=True, text=True, timeout=15,
+            )
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("startTimeUnixNano", proc.stderr)
+            self.assertNotIn(marker, proc.stdout + proc.stderr)
+            self.assertNotIn("Traceback", proc.stderr)
+            self.assertFalse(dest.exists())
+
+    def test_cli_otlp_fixed64_numeric_json_timestamp_is_supported(self) -> None:
+        spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        for span in spans[1:]:
+            span["startTimeUnixNano"] = int(span["startTimeUnixNano"])
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "number_timestamps.json"
+            dest = Path(tmp) / "number_converted.json"
+            source.write_text(json.dumps(self.export), encoding="utf-8")
+            proc = subprocess.run(
+                [
+                    sys.executable, "-m", "agent_trace_lab", "import-otlp",
+                    str(source), "--policy-suite", str(POLICY),
+                    "--case-id", "numeric_start", "--expected", "allow",
+                    "--output", str(dest),
+                ],
+                cwd=ROOT, capture_output=True, text=True, timeout=15,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(len(load_suite(dest)["cases"][0]["trace"]), 2)
+
     def test_missing_opt_in_arguments_fails_closed(self) -> None:
         attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
         attributes.pop()
