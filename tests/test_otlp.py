@@ -46,6 +46,33 @@ class OtlpTests(unittest.TestCase):
         with self.assertRaisesRegex(SuiteError, "no execute_tool"):
             self._convert()
 
+    def test_protojson_omitted_empty_span_groups_do_not_block_recorded_tools(self) -> None:
+        # OTLP trace.proto defines both lists as repeated fields; ProtoJSON
+        # may omit them when empty in unrelated resource/scope groups.
+        baseline = self._convert()
+        self.export["resourceSpans"].extend([
+            {"resource": {"attributes": []}},
+            {"scopeSpans": [{"scope": {"name": "unused"}}]},
+        ])
+        self.assertEqual(self._convert(), baseline)
+
+    def test_protojson_omitted_empty_span_groups_are_not_inferred_as_tool_calls(self) -> None:
+        for export in (
+            {"resourceSpans": [{}]},
+            {"resourceSpans": [{"scopeSpans": [{}]}]},
+        ):
+            with self.subTest(export=export):
+                with self.assertRaisesRegex(SuiteError, "no execute_tool"):
+                    self._convert(export)
+
+    def test_malformed_span_group_lists_are_rejected_not_silently_skipped(self) -> None:
+        for payload in (None, {}, "not a list", [None]):
+            with self.subTest(payload=payload):
+                with self.assertRaises(SuiteError):
+                    self._convert({"resourceSpans": [{"scopeSpans": payload}]})
+                with self.assertRaises(SuiteError):
+                    self._convert({"resourceSpans": [{"scopeSpans": [{"spans": payload}]}]})
+
     def test_import_orders_by_start_time_not_exporter_position(self) -> None:
         spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
         spans[1], spans[2] = spans[2], spans[1]

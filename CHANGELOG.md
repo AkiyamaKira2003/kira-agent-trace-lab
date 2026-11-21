@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- Import saved OTLP JSON with legitimate empty resource/scope groups whose
+  repeated `scopeSpans` or `spans` fields were omitted by ProtoJSON.
+  Explicit null/malformed lists still fail, and a trace with zero
+  `execute_tool` calls is never silently accepted. Synthetic RED/GREEN
+  tests cover mixed groups and strict negative cases; no real agent
+  authorization or execution is inferred.
 - Reject JSON decimal exponents that overflow to non-finite Python floats
   in both local input files and string-encoded tool arguments. Previously,
   syntactically valid `1e9999` could become `Infinity` (invalid when
