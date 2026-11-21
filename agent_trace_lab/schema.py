@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,17 @@ def _parse_bounded_json_integer(token: str) -> int:
         raise SuiteError("JSON integer could not be decoded") from exc
 
 
+def _parse_finite_json_float(token: str) -> float:
+    """Fail closed if a valid JSON decimal overflows Python's binary64 float."""
+    try:
+        value = float(token)
+    except (OverflowError, ValueError) as exc:
+        raise SuiteError("JSON floating-point value is not finite") from exc
+    if not math.isfinite(value):
+        raise SuiteError("JSON floating-point value is not finite")
+    return value
+
+
 def decode_json_arguments(value: Any, location: str) -> dict[str, Any]:
     """Decode an observed tool's arguments as strict JSON without executing them."""
     if isinstance(value, str):
@@ -52,6 +64,7 @@ def decode_json_arguments(value: Any, location: str) -> dict[str, Any]:
                 object_pairs_hook=_object_no_duplicates,
                 parse_constant=_reject_non_json_number,
                 parse_int=_parse_bounded_json_integer,
+                parse_float=_parse_finite_json_float,
             )
         except SuiteError:
             raise
@@ -252,6 +265,7 @@ def load_json_document(path: str | Path) -> Any:
             object_pairs_hook=_object_no_duplicates,
             parse_constant=_reject_non_json_number,
             parse_int=_parse_bounded_json_integer,
+            parse_float=_parse_finite_json_float,
         )
     except OSError as exc:
         # Filesystem exception messages can disclose private source paths.
