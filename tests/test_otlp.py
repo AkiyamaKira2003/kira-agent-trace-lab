@@ -112,6 +112,52 @@ class OtlpTests(unittest.TestCase):
         ]}}
         self.assertEqual(_otlp_value(value, "example"), {marker: "synthetic_value"})
 
+    def test_otlp_int64_limits_reject_out_of_range_values(self) -> None:
+        for payload in (str(1 << 63), -(1 << 63) - 1, 1 << 350):
+            with self.subTest(out_of_range=True):
+                with self.assertRaisesRegex(SuiteError, "signed 64-bit range"):
+                    _otlp_value({"intValue": payload}, "safe.OTLP.location")
+        for number in (-(1 << 63), (1 << 63) - 1, 0):
+            with self.subTest(value=number):
+                self.assertEqual(_otlp_value({"intValue": str(number)}, "safe"), number)
+
+    def test_otlp_giant_double_is_safe_validation_error_not_overflow(self) -> None:
+        for payload in (10 ** 350, -(10 ** 350), float("inf"), float("nan")):
+            with self.subTest(kind=type(payload).__name__):
+                with self.assertRaises(SuiteError) as caught:
+                    _otlp_value({"doubleValue": payload}, "safe.OTLP.location")
+                self.assertIn("doubleValue", str(caught.exception))
+        self.assertEqual(_otlp_value({"doubleValue": 3.25}, "safe"), 3.25)
+        self.assertEqual(_otlp_value({"doubleValue": 123}, "safe"), 123.0)
+
+    def test_cli_oversized_otlp_numeric_arguments_fail_without_traceback(self) -> None:
+        attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
+        for kind, payload in (("doubleValue", 10 ** 350), ("intValue", str(1 << 64))):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
+                original = copy.deepcopy(attributes[2]["value"])
+                try:
+                    attributes[2]["value"] = {"kvlistValue": {"values": [
+                        {"key": "test_numeric", "value": {kind: payload}},
+                    ]}}
+                    source = Path(tmp) / "synthetic_numeric_otlp.json"
+                    dest = Path(tmp) / "converted.json"
+                    source.write_text(json.dumps(self.export), encoding="utf-8")
+                    result = subprocess.run(
+                        [
+                            sys.executable, "-m", "agent_trace_lab",
+                            "import-otlp", str(source),
+                            "--policy-suite", str(POLICY), "--case-id", "numeric_bounds",
+                            "--expected", "allow", "--output", str(dest),
+                        ],
+                        cwd=ROOT, capture_output=True, text=True, timeout=15,
+                    )
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn(kind, result.stderr)
+                    self.assertNotIn("Traceback", result.stderr)
+                    self.assertFalse(dest.exists())
+                finally:
+                    attributes[2]["value"] = original
+
     def test_cli_otlp_invalid_nested_key_is_not_logged(self) -> None:
         marker = "SYNTHETIC_PRIVATE_KEY_DO_NOT_LOG_123"
         attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]

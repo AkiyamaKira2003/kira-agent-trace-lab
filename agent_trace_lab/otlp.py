@@ -35,11 +35,22 @@ def _otlp_value(value: Any, location: str, depth: int = 0) -> Any:
         return payload
     if kind == "intValue" and isinstance(payload, (str, int)) and not isinstance(payload, bool):
         try:
-            return int(payload)
+            parsed = int(payload)
         except ValueError as exc:
             raise SuiteError(f"{location}: invalid intValue") from exc
-    if kind == "doubleValue" and type(payload) in (int, float) and math.isfinite(payload):
-        return float(payload)
+        if not -(1 << 63) <= parsed < (1 << 63):
+            raise SuiteError(f"{location}: intValue outside signed 64-bit range")
+        return parsed
+    if kind == "doubleValue" and type(payload) in (int, float):
+        # JSON decoders can represent a 350-digit number as a Python int.
+        # Both math.isfinite(int) and float(int) may raise OverflowError.
+        try:
+            parsed = float(payload)
+        except OverflowError as exc:
+            raise SuiteError(f"{location}: doubleValue outside finite float range") from exc
+        if not math.isfinite(parsed):
+            raise SuiteError(f"{location}: doubleValue must be finite")
+        return parsed
     if kind == "arrayValue" and isinstance(payload, dict):
         items = _require_list(payload.get("values"), f"{location}.arrayValue", 100)
         return [_otlp_value(item, f"{location}[{i}]", depth + 1) for i, item in enumerate(items)]
