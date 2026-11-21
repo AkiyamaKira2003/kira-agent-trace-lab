@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- ATL-004BO: add opt-in bounded offline policy-delta minimal witnesses using
+  deterministic single-action elimination. Reports only original action
+  indexes, evaluation count and explicit 1-minimal/budget/skip status; does
+  not expose raw tool arguments or infer actual execution/consent. The
+  summary-only privacy mode refuses to combine with witness analysis.
+  Only synthetic metadata was used to verify the new feature.
 - ATL-004BK: bound JSON numeric tokens to 4,300 decimal digits in both
   file and encoded-argument parsing, preventing interpreter-specific
   ValueError tracebacks from untrusted tool traces. CLI exits with a

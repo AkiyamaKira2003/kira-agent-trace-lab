@@ -93,6 +93,10 @@ def main(argv: list[str] | None = None) -> int:
         "--redact-case-ids", action="store_true",
         help="replace case IDs with deterministic per-report ordinals for sharing",
     )
+    compare.add_argument(
+        "--witness", action="store_true",
+        help="opt-in bounded 1-minimal action indexes for changed policy decisions (no tool arguments)",
+    )
     importer = subcommands.add_parser("import-otlp", help="convert recorded OTLP JSON tool spans into a suite")
     importer.add_argument("otlp", type=Path, help="saved OTLP/HTTP JSON export")
     importer.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
@@ -184,6 +188,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
         if args.command == "compare-policies":
+            if args.witness and args.summary_only:
+                raise SuiteError("--witness cannot be combined with --summary-only")
             if args.output and args.output.resolve() in (
                 args.suite.resolve(), args.candidate_policy.resolve(),
             ):
@@ -191,6 +197,7 @@ def main(argv: list[str] | None = None) -> int:
             report = compare_policies(
                 load_suite(args.suite), load_json_document(args.candidate_policy),
                 redact_case_ids=args.redact_case_ids,
+                minimal_witness=args.witness,
             )
             if args.format == "json":
                 public_report = {"summary": report["summary"]} if args.summary_only else report
@@ -212,6 +219,14 @@ def main(argv: list[str] | None = None) -> int:
                             f"baseline_codes={','.join(case['baseline_codes']) or 'none'} "
                             f"candidate_codes={','.join(case['candidate_codes']) or 'none'}"
                         )
+                        if args.witness and case["witness"] is not None:
+                            witness = case["witness"]
+                            indexes = witness["event_indexes"]
+                            lines.append(
+                                f"  witness_status={witness['status']} "
+                                f"witness_indexes={','.join(map(str, indexes)) if indexes is not None else 'unavailable'} "
+                                f"witness_evaluations={witness['evaluations']}"
+                            )
                 display = "\n".join(lines) + "\n"
             if args.output:
                 try:

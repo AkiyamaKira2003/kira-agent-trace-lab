@@ -172,6 +172,28 @@ python -m agent_trace_lab compare-policies examples/demo_permissive.json --candi
 The report shows **policy decision changes, not externally validated
 security or human-authorization accuracy**. Saved outputs are
 committed atomically; original inputs are not modified.
+To investigate **which recorded actions are sufficient to reproduce a
+changed decision**, optionally use `--witness`:
+
+```sh
+python -m agent_trace_lab compare-policies examples/demo_permissive.json --candidate-policy examples/compare_candidate_task_guarded.json --witness --format json --redact-case-ids
+```
+
+This runs a bounded offline trace-reduction search. A `one_minimal`
+witness contains only **zero-based positions of original recorded actions**:
+removing any one *remaining* action changes the baseline/candidate verdict
+pair. It does **not** prove those actions actually executed, caused a
+real-world outcome, or were authorized by a user. No tool calls are made.
+The optional report emits no tool names, argument values or grant references,
+but action indexes and case identifiers can themselves disclose structure;
+use `--redact-case-ids` as appropriate. The operation examines at most
+**5 changed cases**, **64 actions per case**, and **128 paired policy
+evaluations per case**. Larger inputs or exhausted budgets receive explicit
+`skipped_*` or `budget_exhausted` status, never an incorrect minimality claim.
+Unchanged cases have `witness: null`. Existing comparison reports are
+unchanged unless `--witness` is supplied. The strictly aggregate-only
+`--summary-only` option is intentionally incompatible with `--witness`.
+
 For a **strictly aggregate-only** shareable comparison, use
 `--summary-only` with either text or JSON (and optionally
 `--output`). Unlike `--redact-case-ids`, the saved/printed JSON
