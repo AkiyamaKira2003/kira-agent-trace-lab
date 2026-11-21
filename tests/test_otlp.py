@@ -57,6 +57,74 @@ class OtlpTests(unittest.TestCase):
         with self.assertRaisesRegex(SuiteError, "multiple traceIds"):
             self._convert()
 
+    def test_duplicate_span_identity_is_not_a_second_tool_call(self) -> None:
+        spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        spans.append(copy.deepcopy(spans[1]))
+        with self.assertRaisesRegex(SuiteError, "duplicate spanId"):
+            self._convert()
+
+    def test_duplicate_span_id_is_rejected_across_scope_boundaries_and_hex_case(self) -> None:
+        resource = self.export["resourceSpans"][0]
+        span = copy.deepcopy(resource["scopeSpans"][0]["spans"][1])
+        span["spanId"] = span["spanId"].upper()
+        resource["scopeSpans"].append({"spans": [span]})
+        with self.assertRaisesRegex(SuiteError, "duplicate spanId"):
+            self._convert()
+
+    def test_execute_tool_requires_nonzero_span_and_trace_ids(self) -> None:
+        spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        for invalid in (None, "", "0" * 16, "g" * 16, "a" * 15):
+            with self.subTest(spanId=invalid):
+                changed = copy.deepcopy(self.export)
+                target = changed["resourceSpans"][0]["scopeSpans"][0]["spans"][1]
+                if invalid is None:
+                    target.pop("spanId")
+                else:
+                    target["spanId"] = invalid
+                with self.assertRaisesRegex(SuiteError, "spanId"):
+                    self._convert(changed)
+        for invalid in ("0" * 32, "0" * 31, "z" * 32):
+            with self.subTest(traceId=invalid):
+                changed = copy.deepcopy(self.export)
+                target = changed["resourceSpans"][0]["scopeSpans"][0]["spans"][1]
+                target["traceId"] = invalid
+                with self.assertRaisesRegex(SuiteError, "traceId"):
+                    self._convert(changed)
+
+    def test_span_id_hex_casing_does_not_change_valid_tool_trace(self) -> None:
+        before = self._convert()
+        spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        spans[1]["spanId"] = "ABCDEF1234567890"
+        spans[2]["spanId"] = "ABCDEF1234567891"
+        self.assertEqual(self._convert()["cases"][0]["trace"], before["cases"][0]["trace"])
+
+    def test_cli_replayed_span_is_rejected_without_leaking_identifiers(self) -> None:
+        marker = "SYNTHETIC_PRIVATE_TRACE_ARG_876"
+        spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        duplicate = copy.deepcopy(spans[1])
+        duplicate["attributes"][2]["value"] = {
+            "stringValue": json.dumps({"path": marker}),
+        }
+        spans.append(duplicate)
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "duplicated.json"
+            dest = Path(tmp) / "not_written.json"
+            source.write_text(json.dumps(self.export), encoding="utf-8")
+            proc = subprocess.run(
+                [
+                    sys.executable, "-m", "agent_trace_lab", "import-otlp",
+                    str(source), "--policy-suite", str(POLICY),
+                    "--case-id", "duplicate", "--expected", "allow",
+                    "--output", str(dest),
+                ],
+                cwd=ROOT, capture_output=True, text=True, timeout=15,
+            )
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("duplicate spanId", proc.stderr)
+            self.assertNotIn(marker, proc.stderr + proc.stdout)
+            self.assertNotIn("Traceback", proc.stderr)
+            self.assertFalse(dest.exists())
+
     def test_missing_span_ordering_is_rejected(self) -> None:
         spans = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"]
         del spans[1]["startTimeUnixNano"]

@@ -10,6 +10,7 @@
             {
               "name": "execute_tool files.read",
               "traceId": "10000000000000000000000000000001",
+              "spanId": "abcdef0000000001",
               "startTimeUnixNano": "1795146000000000000",
               "attributes": [
                 {"key": "gen_ai.operation.name", "value": {"stringValue": "execute_tool"}},
@@ -23,6 +24,7 @@
             {
               "name": "execute_tool docs.search",
               "traceId": "10000000000000000000000000000001",
+              "spanId": "abcdef0000000002",
               "startTimeUnixNano": "1795146000000000001",
               "attributes": [
                 {"key": "gen_ai.operation.name", "value": {"stringValue": "execute_tool"}},
