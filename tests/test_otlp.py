@@ -231,6 +231,9 @@ class OtlpTests(unittest.TestCase):
             with self.subTest(kind=kind):
                 with self.assertRaises(SuiteError):
                     _otlp_value({kind: {"values": None}}, "safe")
+                for malformed in ({"unexpected": []}, {"values": [], "unexpected": []}):
+                    with self.assertRaises(SuiteError):
+                        _otlp_value({kind: malformed}, "safe")
 
     def test_malformed_json_arguments_fails_closed(self) -> None:
         attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]

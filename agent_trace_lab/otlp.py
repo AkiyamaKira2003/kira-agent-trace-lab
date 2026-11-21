@@ -55,10 +55,14 @@ def _otlp_value(value: Any, location: str, depth: int = 0) -> Any:
         return parsed
     if kind == "arrayValue" and isinstance(payload, dict):
         # ProtoJSON normally omits empty repeated fields; explicit null or an
-        # invalid value still fails validation.
+        # invalid/unknown field still fails validation.
+        if set(payload) - {"values"}:
+            raise SuiteError(f"{location}: invalid arrayValue fields")
         items = _require_list(payload.get("values", []), f"{location}.arrayValue", 100)
         return [_otlp_value(item, f"{location}[{i}]", depth + 1) for i, item in enumerate(items)]
     if kind == "kvlistValue" and isinstance(payload, dict):
+        if set(payload) - {"values"}:
+            raise SuiteError(f"{location}: invalid kvlistValue fields")
         items = _require_list(payload.get("values", []), f"{location}.kvlistValue", 100)
         result: dict[str, Any] = {}
         for index, item in enumerate(items):
