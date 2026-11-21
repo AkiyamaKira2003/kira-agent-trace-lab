@@ -469,3 +469,20 @@ python -m compileall -q agent_trace_lab scripts tests
 ```
 
 See [backlog / checkpoint](docs/BACKLOG.md). Original code and self-authored fixtures are MIT-licensed. The adapted AgentDrift data records are separately CC BY 4.0 licensed with attribution in the external case study.
+
+### Developer-only workspace preflight
+
+For the KIRAA campaign, scripts/workspace_preflight.py is an **offline,
+read-only operational helper**, not an Agent Trace Lab evaluation API. Use:
+
+    python scripts/workspace_preflight.py --repo C:/Projects/PiPClickThrough
+
+It reports checkout HEAD, branch, dirty count, Git worktree count and Windows
+process IDs whose executable paths lie inside that checkout, **without
+exposing command lines or file contents**. Exit 3 means HOLD/manual review,
+2 means probe error and 0 means only no blocker was observed in the instant
+of scanning. It never edits, cleans, locks, stops or deploys anything. On
+non-Windows systems or when process visibility fails it requests review
+rather than claiming all processes are absent. This does not identify all
+agent sessions or prevent time-of-check/time-of-use races.
+See [detailed evidence and limitations](docs/WORKSPACE_PREFLIGHT_2026-11-21.md).
