@@ -111,11 +111,13 @@ def import_otlp(
     for ri, resource in enumerate(resource_spans):
         if not isinstance(resource, dict):
             raise SuiteError(f"resourceSpans[{ri}] must be an object")
-        scopes = _require_list(resource.get("scopeSpans"), f"resourceSpans[{ri}].scopeSpans", 100)
+        # ProtoJSON omits empty repeated fields in otherwise valid groups.
+        # Preserve the final no-execute_tool rejection if all groups are empty.
+        scopes = _require_list(resource.get("scopeSpans", []), f"resourceSpans[{ri}].scopeSpans", 100)
         for si, scope in enumerate(scopes):
             if not isinstance(scope, dict):
                 raise SuiteError(f"scopeSpans[{si}] must be an object")
-            spans = _require_list(scope.get("spans"), f"scopeSpans[{si}].spans", 10000)
+            spans = _require_list(scope.get("spans", []), f"scopeSpans[{si}].spans", 10000)
             for ti, span in enumerate(spans):
                 span_total += 1
                 if span_total > 10000:
