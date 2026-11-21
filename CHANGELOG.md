@@ -2,6 +2,11 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- ATL-004BK: bound JSON numeric tokens to 4,300 decimal digits in both
+  file and encoded-argument parsing, preventing interpreter-specific
+  ValueError tracebacks from untrusted tool traces. CLI exits with a
+  privacy-safe input error; duplicate-key behavior remains unchanged.
+  Verified with synthetic oversized input only, not real security data.
 - ATL-004AQ: make the previously validated local Chrome visual QA
   reproducible through an optional source-only runner: one isolated
   Chrome, loopback HTTP serving only the fictional page, three

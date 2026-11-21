@@ -81,6 +81,9 @@ messages**. Invalid JSON/UTF-8 and filesystem errors are reported
 using a bounded error category without echoing source paths, private
 destination names, or raw parser exception text. This applies to
 installed evaluate, compare-policies, and all five import commands.
+Raw JSON integer tokens are limited to 4,300 decimal digits consistently
+across supported Python versions, including JSON-encoded tool arguments;
+larger values fail closed with exit **2**, not an interpreter traceback.
 Normal reports and imported private trace files can still
 contain user-supplied identifiers and values; this is not a complete
 anonymization feature.

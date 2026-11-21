@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 MAX_FILE_BYTES = 2 * 1024 * 1024
+MAX_JSON_INTEGER_DIGITS = 4300
 MAX_CASES = 500
 MAX_EVENTS = 10000
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
@@ -32,6 +33,16 @@ def _reject_non_json_number(token: str) -> None:
     raise SuiteError(f"non-JSON numeric constant is not allowed: {token}")
 
 
+def _parse_bounded_json_integer(token: str) -> int:
+    """Apply the same integer-size bound on Python 3.10+ without leaking data."""
+    if len(token.lstrip("-")) > MAX_JSON_INTEGER_DIGITS:
+        raise SuiteError("JSON integer exceeds supported decimal-digit limit")
+    try:
+        return int(token)
+    except ValueError as exc:
+        raise SuiteError("JSON integer could not be decoded") from exc
+
+
 def decode_json_arguments(value: Any, location: str) -> dict[str, Any]:
     """Decode an observed tool's arguments as strict JSON without executing them."""
     if isinstance(value, str):
@@ -40,8 +51,11 @@ def decode_json_arguments(value: Any, location: str) -> dict[str, Any]:
                 value,
                 object_pairs_hook=_object_no_duplicates,
                 parse_constant=_reject_non_json_number,
+                parse_int=_parse_bounded_json_integer,
             )
-        except (json.JSONDecodeError, RecursionError) as exc:
+        except SuiteError:
+            raise
+        except (json.JSONDecodeError, RecursionError, ValueError) as exc:
             raise SuiteError(f"{location}: arguments must contain valid JSON object") from exc
     if not isinstance(value, dict):
         raise SuiteError(f"{location}: arguments must be a JSON object")
@@ -237,6 +251,7 @@ def load_json_document(path: str | Path) -> Any:
             payload.decode("utf-8"),
             object_pairs_hook=_object_no_duplicates,
             parse_constant=_reject_non_json_number,
+            parse_int=_parse_bounded_json_integer,
         )
     except OSError as exc:
         # Filesystem exception messages can disclose private source paths.
@@ -248,6 +263,10 @@ def load_json_document(path: str | Path) -> Any:
         raise SuiteError("cannot read valid UTF-8 JSON suite: malformed JSON") from exc
     except RecursionError as exc:
         raise SuiteError("cannot read valid UTF-8 JSON suite: excessive nesting") from exc
+    except SuiteError:
+        raise
+    except ValueError as exc:
+        raise SuiteError("cannot read valid UTF-8 JSON suite: invalid numeric value") from exc
     return value
 
 
