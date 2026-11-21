@@ -16,6 +16,7 @@ _OP = "gen_ai.operation.name"
 _NAME = "gen_ai.tool.name"
 _ARGS = "gen_ai.tool.call.arguments"
 _TRACE_ID = re.compile(r"^[a-fA-F0-9]{32}$")
+_SPAN_ID = re.compile(r"^[a-fA-F0-9]{16}$")
 
 
 def _require_list(value: Any, location: str, limit: int) -> list:
@@ -98,6 +99,7 @@ def import_otlp(
     resource_spans = _require_list(export.get("resourceSpans"), "resourceSpans", 100)
     collected: list[tuple[int, dict[str, Any]]] = []
     trace_ids: set[str] = set()
+    span_ids: set[str] = set()
     span_total = 0
     for ri, resource in enumerate(resource_spans):
         if not isinstance(resource, dict):
@@ -123,14 +125,30 @@ def import_otlp(
                     raise SuiteError(f"spans[{ti}]: execute_tool arguments were not recorded (opt-in)")
                 args = decode_json_arguments(attrs[_ARGS], f"spans[{ti}].{_ARGS}")
                 trace_id = span.get("traceId")
+                span_id = span.get("spanId")
                 timestamp = span.get("startTimeUnixNano")
-                if not isinstance(trace_id, str) or not _TRACE_ID.fullmatch(trace_id):
+                if (
+                    not isinstance(trace_id, str)
+                    or not _TRACE_ID.fullmatch(trace_id)
+                    or trace_id == "0" * 32
+                ):
                     raise SuiteError(f"spans[{ti}]: execute_tool span requires a valid traceId")
+                if (
+                    not isinstance(span_id, str)
+                    or not _SPAN_ID.fullmatch(span_id)
+                    or span_id == "0" * 16
+                ):
+                    raise SuiteError(f"spans[{ti}]: execute_tool span requires a valid spanId")
                 if not isinstance(timestamp, str) or not timestamp.isdecimal() or not 1 <= len(timestamp) <= 20:
                     raise SuiteError(f"spans[{ti}]: execute_tool span requires startTimeUnixNano")
                 trace_ids.add(trace_id.lower())
                 if len(trace_ids) > 1:
                     raise SuiteError("multiple traceIds found; do not combine unrelated agent runs")
+                normalized_span_id = span_id.lower()
+                if normalized_span_id in span_ids:
+                    # Replayed/misidentified spans must not double-count tool calls.
+                    raise SuiteError(f"spans[{ti}]: duplicate spanId in recorded execute_tool trace")
+                span_ids.add(normalized_span_id)
                 collected.append((int(timestamp), {"tool": name, "arguments": args}))
     if not collected:
         raise SuiteError("no execute_tool spans found; cannot infer an empty trace")
