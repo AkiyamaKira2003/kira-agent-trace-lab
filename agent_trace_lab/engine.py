@@ -129,9 +129,67 @@ def evaluate_suite(suite: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+_MAX_WITNESS_CASES = 5
+_MAX_WITNESS_EVENTS = 64
+_MAX_WITNESS_EVALUATIONS = 128
+
+
+def _policy_delta_witness(
+    case: dict[str, Any],
+    baseline_version: str,
+    baseline_policy: dict[str, Any],
+    candidate_version: str,
+    candidate_policy: dict[str, Any],
+    expected_pair: tuple[str, str],
+) -> dict[str, Any]:
+    """Shrink a changed policy verdict to a 1-minimal ordered subsequence.
+
+    This is *not* a causal execution trace. Each probe evaluates recorded
+    metadata without calling a tool, and the public result has indexes only.
+    The bounded search never calls an incomplete witness 'minimal'.
+    """
+    original = case["trace"]
+    retained = list(range(len(original)))
+    evaluations = 0
+    while True:
+        removed_any = False
+        for position in range(len(retained) - 1, -1, -1):
+            if evaluations >= _MAX_WITNESS_EVALUATIONS:
+                return {
+                    "status": "budget_exhausted",
+                    "event_indexes": retained,
+                    "evaluations": evaluations,
+                }
+            trial_indexes = retained[:position] + retained[position + 1:]
+            trial = {**case, "trace": [original[index] for index in trial_indexes]}
+            baseline_result = evaluate_suite({
+                "schema_version": baseline_version,
+                "policy": baseline_policy,
+                "cases": [trial],
+            })["cases"][0]["actual"]
+            candidate_trial = dict(trial)
+            if candidate_version == "1.0":
+                candidate_trial.pop("task_authorization", None)
+            candidate_result = evaluate_suite({
+                "schema_version": candidate_version,
+                "policy": candidate_policy,
+                "cases": [candidate_trial],
+            })["cases"][0]["actual"]
+            evaluations += 1
+            if (baseline_result, candidate_result) == expected_pair:
+                retained = trial_indexes
+                removed_any = True
+        if not removed_any:
+            return {
+                "status": "one_minimal",
+                "event_indexes": retained,
+                "evaluations": evaluations,
+            }
+
+
 def compare_policies(
     baseline_suite: dict[str, Any], candidate_document: dict[str, Any],
-    *, redact_case_ids: bool = False,
+    *, redact_case_ids: bool = False, minimal_witness: bool = False,
 ) -> dict[str, Any]:
     """Compare decisions for identical recorded cases without trusting labels.
 
@@ -141,6 +199,8 @@ def compare_policies(
     """
     if type(redact_case_ids) is not bool:
         raise ValueError("redact_case_ids must be a boolean")
+    if type(minimal_witness) is not bool:
+        raise ValueError("minimal_witness must be a boolean")
     if redact_case_ids:
         # Validate before replacing IDs, so malformed input never becomes
         # valid through rewriting. Evaluate only aliases, including on
@@ -177,8 +237,11 @@ def compare_policies(
         "cases": candidate_cases,
     })
     changed = allow_to_deny = deny_to_allow = 0
+    witnessed_cases = 0
     cases: list[dict[str, Any]] = []
-    for original, proposed in zip(before["cases"], after["cases"]):
+    for case_data, original, proposed in zip(
+        source_suite["cases"], before["cases"], after["cases"],
+    ):
         prior = original["actual"]
         later = proposed["actual"]
         is_changed = prior != later
@@ -188,14 +251,37 @@ def compare_policies(
                 allow_to_deny += 1
             else:
                 deny_to_allow += 1
-        cases.append({
+        row = {
             "id": original["id"],
             "baseline": prior,
             "candidate": later,
             "changed": is_changed,
             "baseline_codes": sorted({item["code"] for item in original["violations"]}),
             "candidate_codes": sorted({item["code"] for item in proposed["violations"]}),
-        })
+        }
+        if minimal_witness:
+            if not is_changed:
+                row["witness"] = None
+            elif witnessed_cases >= _MAX_WITNESS_CASES:
+                row["witness"] = {
+                    "status": "skipped_case_limit",
+                    "event_indexes": None,
+                    "evaluations": 0,
+                }
+            else:
+                witnessed_cases += 1
+                if len(case_data["trace"]) > _MAX_WITNESS_EVENTS:
+                    row["witness"] = {
+                        "status": "skipped_trace_limit",
+                        "event_indexes": None,
+                        "evaluations": 0,
+                    }
+                else:
+                    row["witness"] = _policy_delta_witness(
+                        case_data, source_suite["schema_version"], source_suite["policy"],
+                        candidate_version, candidate_policy, (prior, later),
+                    )
+        cases.append(row)
     return {
         "baseline_schema_version": source_suite["schema_version"],
         "candidate_schema_version": candidate_version,
