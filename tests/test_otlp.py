@@ -207,6 +207,34 @@ class OtlpTests(unittest.TestCase):
         with self.assertRaisesRegex(SuiteError, "not recorded"):
             self._convert()
 
+    def test_execute_tool_accepts_protojson_empty_kvlist_for_no_arguments(self) -> None:
+        # ProtoJSON omits empty repeated fields by default; the corresponding
+        # OTLP KeyValueList is {"kvlistValue": {}} rather than values=[].
+        span = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]
+        span["attributes"][2]["value"] = {"kvlistValue": {}}
+        suite = self._convert()
+        self.assertEqual(suite["cases"][0]["trace"][0], {
+            "tool": "files.read", "arguments": {},
+        })
+
+    def test_nested_omitted_repeated_anyvalue_fields_are_empty_not_null(self) -> None:
+        attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
+        attributes[2]["value"] = {"kvlistValue": {"values": [
+            {"key": "items", "value": {"arrayValue": {}}},
+            {"key": "metadata", "value": {"kvlistValue": {}}},
+        ]}}
+        suite = self._convert()
+        self.assertEqual(suite["cases"][0]["trace"][0]["arguments"], {
+            "items": [], "metadata": {},
+        })
+        for kind in ("arrayValue", "kvlistValue"):
+            with self.subTest(kind=kind):
+                with self.assertRaises(SuiteError):
+                    _otlp_value({kind: {"values": None}}, "safe")
+                for malformed in ({"unexpected": []}, {"values": [], "unexpected": []}):
+                    with self.assertRaises(SuiteError):
+                        _otlp_value({kind: malformed}, "safe")
+
     def test_malformed_json_arguments_fails_closed(self) -> None:
         attributes = self.export["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["attributes"]
         attributes[2]["value"]["stringValue"] = "{invalid"
