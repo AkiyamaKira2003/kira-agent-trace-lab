@@ -341,6 +341,8 @@ information; keep real imports private. See the
 
 ## Import OpenTelemetry tool traces (v0.2)
 
+ProtoJSON exporters may omit the repeated **values** field in an empty **kvlistValue** or nested **arrayValue**. This importer decodes those omitted fields as an empty object or array, but still rejects explicit null or malformed values. The opt-in tool-call arguments attribute itself must be present; this does not infer missing parameters or user authorization.
+
 The converter accepts a saved **OTLP/HTTP JSON** export using OpenTelemetry's GenAI execute-tool span attributes: `gen_ai.operation.name=execute_tool`, `gen_ai.tool.name`, and opt-in `gen_ai.tool.call.arguments`. Supported argument formats are JSON-object strings or a limited structured OTLP `kvlistValue`.
 
 ```sh

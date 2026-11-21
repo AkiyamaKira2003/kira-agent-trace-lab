@@ -54,10 +54,12 @@ def _otlp_value(value: Any, location: str, depth: int = 0) -> Any:
             raise SuiteError(f"{location}: doubleValue must be finite")
         return parsed
     if kind == "arrayValue" and isinstance(payload, dict):
-        items = _require_list(payload.get("values"), f"{location}.arrayValue", 100)
+        # ProtoJSON normally omits empty repeated fields; explicit null or an
+        # invalid value still fails validation.
+        items = _require_list(payload.get("values", []), f"{location}.arrayValue", 100)
         return [_otlp_value(item, f"{location}[{i}]", depth + 1) for i, item in enumerate(items)]
     if kind == "kvlistValue" and isinstance(payload, dict):
-        items = _require_list(payload.get("values"), f"{location}.kvlistValue", 100)
+        items = _require_list(payload.get("values", []), f"{location}.kvlistValue", 100)
         result: dict[str, Any] = {}
         for index, item in enumerate(items):
             if not isinstance(item, dict) or set(item) != {"key", "value"}:
