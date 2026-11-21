@@ -84,6 +84,10 @@ installed evaluate, compare-policies, and all five import commands.
 Raw JSON integer tokens are limited to 4,300 decimal digits consistently
 across supported Python versions, including JSON-encoded tool arguments;
 larger values fail closed with exit **2**, not an interpreter traceback.
+JSON decimal numbers that overflow to non-finite Python floats are likewise
+rejected during decoding (for file inputs and encoded tool arguments),
+instead of silently becoming `Infinity` in subsequent reports. Finite
+floating-point inputs continue to use Python's normal binary64 precision.
 Normal reports and imported private trace files can still
 contain user-supplied identifiers and values; this is not a complete
 anonymization feature.

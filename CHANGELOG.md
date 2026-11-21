@@ -2,6 +2,13 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- Reject JSON decimal exponents that overflow to non-finite Python floats
+  in both local input files and string-encoded tool arguments. Previously,
+  syntactically valid `1e9999` could become `Infinity` (invalid when
+  serialized as strict JSON), including in legacy schema-1.0 traces.
+  Finite numeric inputs remain supported. Synthetic red/green tests cover
+  both parser entry points and CLI fail-closed/no-output behavior; this
+  change does not authenticate caller-supplied labels.
 - ATL-004BO: add opt-in bounded offline policy-delta minimal witnesses using
   deterministic single-action elimination. Reports only original action
   indexes, evaluation count and explicit 1-minimal/budget/skip status; does
