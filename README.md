@@ -366,6 +366,12 @@ tests SDK-omitted empty groups and nested AnyValue, and verifies a synthetic
 two-tool import without changing runtime dependencies. It does **not** claim
 a live OTLP exporter or end-to-end agent security validation.
 
+A separate [official JavaScript OTLP/HTTP JSON loopback proof](docs/OTLP_JS_HTTP_EXPORTER_PROOF_20261122.md)
+emits two synthetic tool spans through a pinned SDK to an ephemeral localhost
+receiver, then checks the captured HTTP JSON with this importer and its CLI.
+The raw HTTP JSON IDs need no rewriting. No real tools execute; all optional
+Node dependencies and captures stay in Git-ignored artifacts/.
+
 The synthetic regression harness can be run with
 `python -m unittest tests.test_otlp_mutations -v`. It exercises seeded
 malformed spans, nested OTLP AnyValue objects, replayed IDs, empty groups and
