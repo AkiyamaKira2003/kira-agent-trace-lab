@@ -2,6 +2,12 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- Add deterministic, bounded OTLP importer mutation regressions (seed
+  0x004D6) covering 41 invalid structures and nested AnyValue variants,
+  24 valid resource/scope reorderings, 24 duplicate span identities,
+  list-size limits, empty tool traces, and four privacy/atomic-write CLI
+  failures. All test data is synthetic. No runtime parser behavior, tool
+  execution, production traces or inferred caller authorization changed.
 - Import saved OTLP JSON with legitimate empty resource/scope groups whose
   repeated `scopeSpans` or `spans` fields were omitted by ProtoJSON.
   Explicit null/malformed lists still fail, and a trace with zero

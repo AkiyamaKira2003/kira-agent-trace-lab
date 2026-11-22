@@ -360,6 +360,14 @@ When importing with a schema-1.1 policy, the resulting suite also uses 1.1 but c
 
 This is a narrow OTLP JSON import, not support for binary protobuf, all exporters, all semantic-convention versions or model-specific logging formats.
 
+The synthetic regression harness can be run with
+`python -m unittest tests.test_otlp_mutations -v`. It exercises seeded
+malformed spans, nested OTLP AnyValue objects, replayed IDs, empty groups and
+invalid CLI inputs. Negative CLI cases must return an input error without
+publishing a partial output file or displaying a synthetic private marker.
+This checks known parser contracts, **not** arbitrary exporter compatibility
+or live-agent security.
+
 ## Experimental SWE recorded tool-call import (v0.4)
 
 An offline, **experimental** importer reads a single locally saved SWE-agent-style JSON row containing `messages`. It extracts assistant `tool_calls[].function` records only, without executing tools, including the original system prompt, or using the dataset's `resolved` task-success field as an authorization label.
