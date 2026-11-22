@@ -25,6 +25,8 @@ Research date **2026-11-20 (Asia/Ho_Chi_Minh)**. Sources below were checked as r
 
 Priority uncertainty: the evaluator's utility depends on ingesting authentic real-world traces and evaluating independently labeled behavior. If a mature framework already solves that exact use case more economically, contribute upstream rather than maintaining an unnecessary standalone project.
 
+**2026-11-22 product-value triage:** [ATL-004DM](docs/PRODUCT_VALUE_TRIAGE_20261122.md) compares current Phoenix/Langfuse capabilities with an actual reproducible CLI workflow gap (unlabeled OTLP policy inspection). [Issue #72](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/72) is a *hypothesis to test*, not evidence of user demand, competitive superiority or validated real-world security outcomes.
+
 **Follow-up:** research a stable trace schema, build a read-only adapter, use independently labeled benign and harmful cases, measure false positives/negatives, then compare results against existing frameworks. No external licenses are inherited by mere research links.
 
 OpenTelemetry was chosen for the first adapter because its documented attributes are framework-neutral. The resulting converter handles one trace ID at a time and rejects missing arguments or ambiguous ordering metadata rather than guessing; tests only use synthetic spans until a real, consented dataset is available.
