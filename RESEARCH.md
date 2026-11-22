@@ -27,6 +27,8 @@ Priority uncertainty: the evaluator's utility depends on ingesting authentic rea
 
 **2026-11-22 product-value triage:** [ATL-004DM](docs/PRODUCT_VALUE_TRIAGE_20261122.md) compares current Phoenix/Langfuse capabilities with an actual reproducible CLI workflow gap (unlabeled OTLP policy inspection). [Issue #72](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/72) is a *hypothesis to test*, not evidence of user demand, competitive superiority or validated real-world security outcomes.
 
+**2026-11-22 external-adoption gate:** [ATL-004DQ](docs/DEVELOPER_ADOPTION_GATE_20261122.md) links genuine upstream concerns about missing/private tool arguments, compares established alternatives and reproduces the existing fail-closed exit 2 with a synthetic OTLP fixture. The proposed metadata-only feature is **NO GO** until a consented developer case demonstrates an unmet job; no adoption or customer feedback is claimed.
+
 **Follow-up:** research a stable trace schema, build a read-only adapter, use independently labeled benign and harmful cases, measure false positives/negatives, then compare results against existing frameworks. No external licenses are inherited by mere research links.
 
 OpenTelemetry was chosen for the first adapter because its documented attributes are framework-neutral. The resulting converter handles one trace ID at a time and rejects missing arguments or ambiguous ordering metadata rather than guessing; tests only use synthetic spans until a real, consented dataset is available.
