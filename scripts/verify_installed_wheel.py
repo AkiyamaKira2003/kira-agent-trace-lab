@@ -28,6 +28,7 @@ WHEEL_MAX_SIZE = 2 * 1024 * 1024
 EXAMPLES = (
     "suite.json",
     "otlp_spans.json",
+    "otlp_audit_policy.json",
     "swe_recorded_row_synthetic.json",
     "swe_structural_policy.json",
     "responses_function_calls_synthetic.json",
@@ -337,6 +338,37 @@ def run(wheel: Path) -> dict[str, Any]:
             [sys.executable, "-S", "-m", "agent_trace_lab", "evaluate",
              "demo_task_scoped.json", "--format", "json"], work, env))
         launcher = installed_console_path(site, os.name)
+        # New unlabeled audit is read-only, shares the original OTLP parser
+        # and action scanner, and must work from the installed distribution.
+        audit_args = [
+            "audit-otlp", "otlp_spans.json", "--policy-file",
+            "otlp_audit_policy.json",
+        ]
+        module_audit = _execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab", *audit_args],
+            work, env,
+        )
+        console_audit = _execute([str(launcher), *audit_args], work, env)
+        audited = json.loads(module_audit)
+        if (module_audit != console_audit
+                or audited["actual"] != "allow"
+                or audited["recorded_action_count"] != 2
+                or audited["violations"] != []
+                or any(audited[key] is not False for key in (
+                    "ground_truth_available", "user_authorization_verified",
+                    "security_metrics_available", "trace_completeness_verified",
+                    "recorded_actions_executed",
+                ))
+                or any(field in module_audit for field in (
+                    '"expected"', '"confusion"', '"accuracy"',
+                    '"arguments"', '"tool"', "files.read", "docs.search",
+                ))):
+            raise SuiteError("installed OTLP policy-only audit invented labels or leaked tool data")
+        installed_audit_text = _execute(
+            [str(launcher), *audit_args, "--format", "text"], work, env,
+        )
+        if "unverified" not in installed_audit_text or "allow" not in installed_audit_text:
+            raise SuiteError("installed audit text omitted provenance limitations")
         # Structural preflight is intentionally independent of policy
         # evaluation and caller labels, and serializes no case/tool values.
         validate_args = ["validate", "suite.json", "--format", "json"]
@@ -723,6 +755,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_evaluation_mismatch_exit_and_overwrite_verified": True,
         "installed_aggregate_only_report_verified": True,
         "installed_structural_only_validation_verified": True,
+        "installed_otlp_policy_only_audit_verified": True,
         "installed_import_explicit_overwrite_verified": True,
         "installed_import_formats_verified": len(import_cases) - 1,
         "installed_import_commands_verified": len(import_cases),

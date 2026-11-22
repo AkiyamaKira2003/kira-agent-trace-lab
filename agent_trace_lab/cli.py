@@ -9,9 +9,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .engine import compare_policies, evaluate_suite
-from .schema import SuiteError, load_json_document, load_suite
-from .otlp import import_otlp
+from .engine import compare_policies, evaluate_policy_trace, evaluate_suite
+from .schema import SuiteError, load_json_document, load_suite, validate_policy
+from .otlp import import_otlp, parse_otlp_tool_trace
 from .swe import import_swe_row
 from .agentdojo import import_agentdojo_run
 from .responses import import_responses_output, import_responses_sequence
@@ -104,6 +104,15 @@ def main(argv: list[str] | None = None) -> int:
     importer.add_argument("--expected", choices=("allow", "deny"), required=True, help="human-provided ground truth label")
     importer.add_argument("--output", type=Path, required=True, help="output suite file (may contain sensitive arguments)")
     importer.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output file")
+    audit_otlp = subcommands.add_parser(
+        "audit-otlp", help="inspect one saved OTLP trace under a policy, without expected labels",
+    )
+    audit_otlp.add_argument("otlp", type=Path, help="one saved, complete OTLP/HTTP JSON export")
+    audit_otlp.add_argument(
+        "--policy-file", type=Path, required=True,
+        help="JSON object containing schema_version and policy only; no case labels",
+    )
+    audit_otlp.add_argument("--format", choices=("json", "text"), default="json")
     swe = subcommands.add_parser("import-swe", help="convert a local recorded SWE tool-call row into a suite")
     swe.add_argument("row", type=Path, help="a single saved JSON row, not a dataset API response envelope")
     swe.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
@@ -137,6 +146,31 @@ def main(argv: list[str] | None = None) -> int:
     sequence.add_argument("--overwrite", action="store_true", help="explicitly replace an existing regular output")
     args = parser.parse_args(argv)
     try:
+        if args.command == "audit-otlp":
+            policy_document = load_json_document(args.policy_file)
+            if not isinstance(policy_document, dict) or set(policy_document) != {
+                "schema_version", "policy",
+            }:
+                raise SuiteError("audit policy file must contain schema_version and policy only")
+            version = policy_document["schema_version"]
+            policy = validate_policy(policy_document["policy"], version)
+            trace = parse_otlp_tool_trace(load_json_document(args.otlp))
+            report = evaluate_policy_trace(policy, trace, schema_version=version)
+            if args.format == "json":
+                print(json.dumps(report, indent=2, ensure_ascii=False))
+            else:
+                codes = ",".join(
+                    f"{entry['event_index']}:{entry['code']}"
+                    for entry in report["violations"]
+                ) or "none"
+                print(
+                    f"Policy-only verdict: {report['actual']}. "
+                    f"Recorded actions: {report['recorded_action_count']}. "
+                    f"Violation indexes/codes: {codes}. "
+                    "Ground truth, human authorization, trace completeness and "
+                    "security metrics unverified; no recorded actions executed."
+                )
+            return 0  # A denied action is a policy result, not a parser failure.
         if args.command == "validate":
             if args.output and args.suite.resolve() == args.output.resolve():
                 raise SuiteError("refusing to overwrite input suite")

@@ -2,6 +2,13 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- Add explicit `audit-otlp` policy-only CLI for a single saved OTLP JSON trace
+  and a policy-only JSON file. Reuse the existing OTLP parser, strict
+  schema validation and action scanner without inventing expected labels.
+  Emit only recorded action counts, allow/deny policy decisions and bounded
+  violation codes/indexes; forbid confusion/accuracy/human-authorization
+  claims and explicitly disclaim trace completeness. Existing labeled
+  importers, evaluation and task-grant semantics remain unchanged.
 - Add source-only offline negative tests for caller-declared OTLP HTTP
   batch manifests, including bounded counts, SHA-256, file inventory,
   cross-batch trace IDs and replay rejection. CLI explicitly disclaims

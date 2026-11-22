@@ -341,6 +341,36 @@ information; keep real imports private. See the
 
 ## Import OpenTelemetry tool traces (v0.2)
 
+### Offline policy-only audit without ground-truth labels (experimental dev2)
+
+When you have a saved **complete** OTLP/HTTP JSON export but no independently
+reviewed allow/deny label, use the opt-in `audit-otlp` command. The policy
+file contains **only** `schema_version` and `policy`, not labeled cases.
+No `--expected` option, suite output, model/API call or tool replay is needed:
+
+```sh
+python -m agent_trace_lab audit-otlp examples/otlp_spans.json --policy-file examples/otlp_audit_policy.json
+```
+
+The default JSON result reports `actual` (`allow` or `deny`),
+`recorded_action_count`, bounded violation `event_index`/`code` pairs,
+and explicit `false` values for `ground_truth_available`,
+`user_authorization_verified`, `security_metrics_available`,
+`trace_completeness_verified` and `recorded_actions_executed`.
+No recorded tool names, file paths, arguments, expected labels, confusion
+matrices or accuracy scores are output. `--format text` is also supported.
+A denial is a **policy decision** (CLI exit 0); malformed input is exit 2.
+Schema 1.1 guarded actions are denied when no external task grants are supplied.
+
+This is **not a trust decision** about the actual user's intentions. A valid
+OTLP document can still be a partial HTTP batch: this CLI cannot prove all
+agent actions were captured, or authenticate the policy or its author.
+Retain the local OTLP source privately, especially if recorded arguments
+contain secrets. See [bounded proof and negative controls](docs/LABEL_FREE_OTLP_POLICY_AUDIT_20261122.md)
+and [issue #72](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/issues/72).
+The older `import-otlp` command still requires a caller-supplied
+`--expected` label for its labeled-suite workflow.
+
 ProtoJSON exporters may omit the repeated **values** field in an empty **kvlistValue** or nested **arrayValue**. This importer decodes those omitted fields as an empty object or array, but still rejects explicit null or malformed values. The opt-in tool-call arguments attribute itself must be present; this does not infer missing parameters or user authorization.
 
 An OTLP export may also include unrelated resource or instrumentation-scope groups with no spans. Empty repeated `scopeSpans` and `spans` fields may be omitted by ProtoJSON; the importer skips those empty groups while still rejecting malformed fields. If no recorded `execute_tool` call remains, the import fails rather than treating an empty trace as safe.

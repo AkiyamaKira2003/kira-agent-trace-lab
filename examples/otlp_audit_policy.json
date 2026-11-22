@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "policy": {
+    "max_actions": 3,
+    "tools": {
+      "docs.search": {},
+      "files.read": {
+        "path_args": ["path"],
+        "allowed_roots": ["/workspace/docs"]
+      },
+      "net.fetch": {
+        "url_args": ["url"],
+        "allowed_hosts": ["docs.example.org"]
+      }
+    }
+  }
+}

@@ -94,13 +94,8 @@ def _attributes(span: dict[str, Any], location: str) -> dict[str, Any]:
     return result
 
 
-def import_otlp(
-    export: Any, *, policy: dict[str, Any], case_id: str, expected: str
-) -> dict[str, Any]:
-    """Convert OTLP JSON to a single labeled evaluation suite.
-
-    Caller supplies the expected label. The importer cannot infer ground truth.
-    """
+def parse_otlp_tool_trace(export: Any) -> list[dict[str, Any]]:
+    """Parse one saved OTLP JSON envelope into tool events; no labels or execution."""
     if not isinstance(export, dict):
         raise SuiteError("OTLP export must be an object")
     resource_spans = _require_list(export.get("resourceSpans"), "resourceSpans", 100)
@@ -170,7 +165,14 @@ def import_otlp(
     if not collected:
         raise SuiteError("no execute_tool spans found; cannot infer an empty trace")
     # Ties retain exporter order. Concurrent execution cannot be fully ordered.
-    trace = [event for _, event in sorted(collected, key=lambda item: item[0])]
+    return [event for _, event in sorted(collected, key=lambda item: item[0])]
+
+
+def import_otlp(
+    export: Any, *, policy: dict[str, Any], case_id: str, expected: str
+) -> dict[str, Any]:
+    """Convert OTLP JSON to a labeled suite with *caller-supplied* ground truth."""
+    trace = parse_otlp_tool_trace(export)
     suite = {
         "schema_version": "1.1" if "task_guarded_tools" in policy else "1.0",
         "policy": policy,
