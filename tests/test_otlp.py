@@ -36,6 +36,38 @@ class OtlpTests(unittest.TestCase):
         self.assertEqual(suite, self._convert())
         self.assertEqual(evaluate_suite(suite)["summary"]["matched"], 1)
 
+    def test_explicit_two_export_envelopes_require_external_completion_contract(self) -> None:
+        """One valid HTTP export cannot prove that a trace has no later batches."""
+        first = copy.deepcopy(self.export)
+        second = copy.deepcopy(self.export)
+        first["resourceSpans"][0]["scopeSpans"][0]["spans"] = (
+            first["resourceSpans"][0]["scopeSpans"][0]["spans"][:2]
+        )
+        second["resourceSpans"][0]["scopeSpans"][0]["spans"] = (
+            second["resourceSpans"][0]["scopeSpans"][0]["spans"][2:]
+        )
+        self.assertEqual([e["tool"] for e in self._convert(first)["cases"][0]["trace"]], ["files.read"])
+        self.assertEqual([e["tool"] for e in self._convert(second)["cases"][0]["trace"]], ["docs.search"])
+        with self.assertRaisesRegex(SuiteError, "OTLP export must be an object"):
+            self._convert([first, second])
+        # This is a caller-assembled fixture, not evidence that all network
+        # batches were received. Only a complete external capture may combine.
+        complete = {"resourceSpans": first["resourceSpans"] + second["resourceSpans"]}
+        self.assertEqual(
+            [e["tool"] for e in self._convert(complete)["cases"][0]["trace"]],
+            ["files.read", "docs.search"],
+        )
+        duplicate = copy.deepcopy(complete)
+        duplicate["resourceSpans"][1]["scopeSpans"][0]["spans"][0]["spanId"] = (
+            duplicate["resourceSpans"][0]["scopeSpans"][0]["spans"][1]["spanId"]
+        )
+        with self.assertRaisesRegex(SuiteError, "duplicate spanId"):
+            self._convert(duplicate)
+        wrong_run = copy.deepcopy(complete)
+        wrong_run["resourceSpans"][1]["scopeSpans"][0]["spans"][0]["traceId"] = "a" * 32
+        with self.assertRaisesRegex(SuiteError, "multiple traceIds"):
+            self._convert(wrong_run)
+
     def test_human_label_is_not_inferred(self) -> None:
         suite = self._convert(expected="deny")
         result = evaluate_suite(suite)["cases"][0]

@@ -372,6 +372,16 @@ receiver, then checks the captured HTTP JSON with this importer and its CLI.
 The raw HTTP JSON IDs need no rewriting. No real tools execute; all optional
 Node dependencies and captures stay in Git-ignored artifacts/.
 
+**Multi-request capture limitation:** An OTLP exporter can send *one trace*
+across multiple HTTP POSTs. The CLI accepts one JSON export envelope, not
+an HTTP capture stream. Importing the first successful POST cannot prove
+that it includes subsequent actions. An [optional verified two-POST SDK
+exercise](docs/OTLP_MULTI_POST_COMPLETENESS_20261122.md) demonstrates this
+boundary, the caller's explicit bounded assembly of captured `resourceSpans`,
+and cross-batch duplicate detection. It does **not** supply an authenticated
+end-of-trace marker or safe production Collector; use an externally proven
+complete capture, never a guessed first/last batch, for evaluation.
+
 The synthetic regression harness can be run with
 `python -m unittest tests.test_otlp_mutations -v`. It exercises seeded
 malformed spans, nested OTLP AnyValue objects, replayed IDs, empty groups and
