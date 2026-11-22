@@ -382,6 +382,12 @@ and cross-batch duplicate detection. It does **not** supply an authenticated
 end-of-trace marker or safe production Collector; use an externally proven
 complete capture, never a guessed first/last batch, for evaluation.
 
+An opt-in [offline declared-batch manifest proof](docs/OTLP_CAPTURE_MANIFEST_NEGATIVE_GATE_20261122.md)
+checks bounded local file inventory, SHA-256, ordered batch indexes and
+cross-batch trace identity. These checks are **relative to the caller's
+manifest**; they cannot authenticate the capture or prove no POST was missed.
+This source-only prototype is not a runtime dependency or production Collector.
+
 The synthetic regression harness can be run with
 `python -m unittest tests.test_otlp_mutations -v`. It exercises seeded
 malformed spans, nested OTLP AnyValue objects, replayed IDs, empty groups and
