@@ -6,7 +6,7 @@ import copy
 from typing import Any
 from urllib.parse import urlsplit
 
-from .schema import _exact_arguments, _keys, validate_suite
+from .schema import _exact_arguments, _keys, validate_policy, validate_suite, validate_trace
 
 
 def _path_permitted(value: Any, roots: list[str]) -> tuple[bool, str]:
@@ -47,56 +47,91 @@ def _violation(index: int, tool: str, code: str, argument: str | None = None) ->
     return result
 
 
+def _policy_violations(
+    policy: dict[str, Any], trace: list[dict[str, Any]], *,
+    authorization: dict[str, Any] | None = None, location: str = "trace",
+) -> list[dict[str, Any]]:
+    """Shared, read-only action scanner for labeled and unlabeled workflows."""
+    guarded = set(policy.get("task_guarded_tools", []))
+    violations: list[dict[str, Any]] = []
+    grants = (authorization or {}).get("grants", [])
+    consumed: set[str] = set()
+    for index, event in enumerate(trace):
+        name, args = event["tool"], event["arguments"]
+        if index >= policy["max_actions"]:
+            violations.append(_violation(index, name, "ACTION_LIMIT_EXCEEDED"))
+        config = policy["tools"].get(name)
+        if config is None:
+            violations.append(_violation(index, name, "TOOL_NOT_ALLOWED"))
+            continue
+        for arg in config.get("path_args", []):
+            if arg not in args:
+                violations.append(_violation(index, name, "MISSING_ARGUMENT", arg))
+                continue
+            allowed, code = _path_permitted(args[arg], config["allowed_roots"])
+            if not allowed:
+                violations.append(_violation(index, name, code, arg))
+        for arg in config.get("url_args", []):
+            if arg not in args:
+                violations.append(_violation(index, name, "MISSING_ARGUMENT", arg))
+                continue
+            allowed, code = _url_permitted(args[arg], config["allowed_hosts"])
+            if not allowed:
+                violations.append(_violation(index, name, code, arg))
+        if name in guarded:
+            observed = _exact_arguments(args, f"{location}[{index}].arguments")
+            matched_grant = next(
+                (
+                    grant for grant in grants
+                    if grant["grant_id"] not in consumed
+                    and grant["tool"] == name
+                    and _exact_arguments(grant["arguments"], f"grants[{grant['grant_id']}].arguments")
+                    == observed
+                ),
+                None,
+            )
+            if matched_grant is None:
+                violations.append(_violation(index, name, "TASK_GRANT_REQUIRED"))
+            else:
+                consumed.add(matched_grant["grant_id"])
+    return violations
+
+
+def evaluate_policy_trace(
+    policy: dict[str, Any], trace: list[dict[str, Any]], *, schema_version: str
+) -> dict[str, Any]:
+    """Audit saved events under a policy, without labels, grants or accuracy metrics."""
+    validate_policy(policy, schema_version)
+    validate_trace(trace, schema_version=schema_version, location="trace")
+    violations = _policy_violations(policy, trace)
+    return {
+        "actual": "deny" if violations else "allow",
+        "recorded_action_count": len(trace),
+        # Never include tool/argument names or values from untrusted traces
+        # in the report. Only bounded event indexes and fixed reason codes.
+        "violations": [
+            {"event_index": item["event_index"], "code": item["code"]}
+            for item in violations
+        ],
+        "ground_truth_available": False,
+        "user_authorization_verified": False,
+        "security_metrics_available": False,
+        "trace_completeness_verified": False,
+        "recorded_actions_executed": False,
+    }
+
+
 def evaluate_suite(suite: dict[str, Any]) -> dict[str, Any]:
     """Return deterministic verdicts; positive class is expected='deny'."""
     validate_suite(suite)
     policy = suite["policy"]
-    guarded = set(policy.get("task_guarded_tools", []))
     results: list[dict[str, Any]] = []
     tp = tn = fp = fn = 0
     for case in suite["cases"]:
-        violations: list[dict[str, Any]] = []
-        authorization = case.get("task_authorization") or {}
-        grants = authorization.get("grants", [])
-        consumed: set[str] = set()
-        for index, event in enumerate(case["trace"]):
-            name, args = event["tool"], event["arguments"]
-            if index >= policy["max_actions"]:
-                violations.append(_violation(index, name, "ACTION_LIMIT_EXCEEDED"))
-            config = policy["tools"].get(name)
-            if config is None:
-                violations.append(_violation(index, name, "TOOL_NOT_ALLOWED"))
-                continue
-            for arg in config.get("path_args", []):
-                if arg not in args:
-                    violations.append(_violation(index, name, "MISSING_ARGUMENT", arg))
-                    continue
-                allowed, code = _path_permitted(args[arg], config["allowed_roots"])
-                if not allowed:
-                    violations.append(_violation(index, name, code, arg))
-            for arg in config.get("url_args", []):
-                if arg not in args:
-                    violations.append(_violation(index, name, "MISSING_ARGUMENT", arg))
-                    continue
-                allowed, code = _url_permitted(args[arg], config["allowed_hosts"])
-                if not allowed:
-                    violations.append(_violation(index, name, code, arg))
-            if name in guarded:
-                observed = _exact_arguments(args, f"cases[{case['id']}].trace[{index}].arguments")
-                matched_grant = next(
-                    (
-                        grant for grant in grants
-                        if grant["grant_id"] not in consumed
-                        and grant["tool"] == name
-                        and _exact_arguments(grant["arguments"], f"grants[{grant['grant_id']}].arguments")
-                        == observed
-                    ),
-                    None,
-                )
-                if matched_grant is None:
-                    violations.append(_violation(index, name, "TASK_GRANT_REQUIRED"))
-                else:
-                    consumed.add(matched_grant["grant_id"])
+        violations = _policy_violations(
+            policy, case["trace"], authorization=case.get("task_authorization"),
+            location=f"cases[{case['id']}].trace",
+        )
         actual = "deny" if violations else "allow"
         expected = case["expected"]
         if expected == "deny" and actual == "deny":

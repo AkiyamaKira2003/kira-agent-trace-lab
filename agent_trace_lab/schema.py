@@ -168,14 +168,13 @@ def _validate_task_authorization(case: dict[str, Any], location: str, guarded: s
         _exact_arguments(grant["arguments"], f"{where}.arguments")
 
 
-def validate_suite(suite: Any) -> dict[str, Any]:
-    suite = _keys(suite, "suite", {"schema_version", "policy", "cases"})
-    version = suite["schema_version"]
+def validate_policy(policy: Any, schema_version: str) -> dict[str, Any]:
+    """Validate a policy independently of labels, cases or execution."""
+    version = schema_version
     if version not in ("1.0", "1.1"):
         raise SuiteError("unsupported schema_version (expected 1.0 or 1.1)")
-
     policy_required = {"tools", "max_actions"} | ({"task_guarded_tools"} if version == "1.1" else set())
-    policy = _keys(suite["policy"], "policy", policy_required)
+    policy = _keys(policy, "policy", policy_required)
     limit = policy["max_actions"]
     if type(limit) is not int or not 1 <= limit <= 1000:
         raise SuiteError("policy.max_actions must be an integer from 1 to 1000")
@@ -205,12 +204,39 @@ def validate_suite(suite: Any) -> dict[str, Any]:
         if any(host != host.lower() or not _HOST.fullmatch(host) or ".." in host for host in hosts):
             raise SuiteError(f"{tool_location}: allowed_hosts must be exact lower-case DNS names")
 
-    guarded: set[str] = set()
     if version == "1.1":
         guarded_list = _strings(policy["task_guarded_tools"], "policy.task_guarded_tools", allow_empty=False)
         if any(tool not in tools for tool in guarded_list):
             raise SuiteError("policy.task_guarded_tools must reference allowlisted tools")
-        guarded = set(guarded_list)
+    return policy
+
+
+def validate_trace(trace: Any, *, schema_version: str, location: str) -> list:
+    """Validate recorded events without requiring a caller-provided expected label."""
+    if schema_version not in ("1.0", "1.1"):
+        raise SuiteError("unsupported schema_version (expected 1.0 or 1.1)")
+    if not isinstance(trace, list) or len(trace) > 1000:
+        raise SuiteError(f"{location} must be a list of at most 1000 events")
+    for event_index, event in enumerate(trace):
+        where = f"{location}[{event_index}]"
+        event = _keys(event, where, {"tool", "arguments"})
+        if not isinstance(event["tool"], str) or not _IDENTIFIER.fullmatch(event["tool"]):
+            raise SuiteError(f"{where}.tool is invalid")
+        arguments = event["arguments"]
+        if not isinstance(arguments, dict) or len(arguments) > 100:
+            raise SuiteError(f"{where}.arguments must be a JSON object (max 100 keys)")
+        if any(not isinstance(k, str) or len(k) > 80 for k in arguments):
+            raise SuiteError(f"{where}.arguments has invalid keys")
+        if schema_version == "1.1":
+            _exact_arguments(arguments, f"{where}.arguments")
+    return trace
+
+
+def validate_suite(suite: Any) -> dict[str, Any]:
+    suite = _keys(suite, "suite", {"schema_version", "policy", "cases"})
+    version = suite["schema_version"]
+    policy = validate_policy(suite["policy"], version)
+    guarded = set(policy.get("task_guarded_tools", []))
 
     cases = suite["cases"]
     if not isinstance(cases, list) or not 1 <= len(cases) <= MAX_CASES:
@@ -229,24 +255,10 @@ def validate_suite(suite: Any) -> dict[str, Any]:
             raise SuiteError(f"{location}.expected must be allow or deny")
         if "description" in case and (not isinstance(case["description"], str) or len(case["description"]) > 500):
             raise SuiteError(f"{location}.description must be a string (max 500 characters)")
-        trace = case["trace"]
-        if not isinstance(trace, list) or len(trace) > 1000:
-            raise SuiteError(f"{location}.trace must be a list of at most 1000 events")
+        trace = validate_trace(case["trace"], schema_version=version, location=f"{location}.trace")
         total_events += len(trace)
         if total_events > MAX_EVENTS:
             raise SuiteError(f"total events exceeds {MAX_EVENTS}")
-        for event_index, event in enumerate(trace):
-            where = f"{location}.trace[{event_index}]"
-            event = _keys(event, where, {"tool", "arguments"})
-            if not isinstance(event["tool"], str) or not _IDENTIFIER.fullmatch(event["tool"]):
-                raise SuiteError(f"{where}.tool is invalid")
-            arguments = event["arguments"]
-            if not isinstance(arguments, dict) or len(arguments) > 100:
-                raise SuiteError(f"{where}.arguments must be a JSON object (max 100 keys)")
-            if any(not isinstance(k, str) or len(k) > 80 for k in arguments):
-                raise SuiteError(f"{where}.arguments has invalid keys")
-            if version == "1.1":
-                _exact_arguments(arguments, f"{where}.arguments")
         if version == "1.1":
             _validate_task_authorization(case, location, guarded)
     return suite
