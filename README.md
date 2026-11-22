@@ -360,6 +360,12 @@ When importing with a schema-1.1 policy, the resulting suite also uses 1.1 but c
 
 This is a narrow OTLP JSON import, not support for binary protobuf, all exporters, all semantic-convention versions or model-specific logging formats.
 
+An optional [official-generated Protobuf/OTLP JSON interoperability check](docs/OTLP_PROTOJSON_SDK_PROOF_20261122.md)
+documents the protocol's hex (not generic base64) trace/span ID encoding,
+tests SDK-omitted empty groups and nested AnyValue, and verifies a synthetic
+two-tool import without changing runtime dependencies. It does **not** claim
+a live OTLP exporter or end-to-end agent security validation.
+
 The synthetic regression harness can be run with
 `python -m unittest tests.test_otlp_mutations -v`. It exercises seeded
 malformed spans, nested OTLP AnyValue objects, replayed IDs, empty groups and
