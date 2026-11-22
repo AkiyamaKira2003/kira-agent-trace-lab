@@ -375,6 +375,8 @@ valid verdicts still exit `0`. The same privacy-limited JSON or text
 report is emitted in either mode; no tool replay, expected label, output
 file or independently verified security result is added. See the
 [bounded CI gate test notes](docs/OPT_IN_POLICY_ONLY_CI_GATE_20261122.md).
+For a reproducible Windows/Ubuntu CI step that checks all three exit codes
+using only synthetic input, see the [copyable consumer recipe](docs/OTLP_CI_CONSUMER_DEMO_20261122.md).
 
 This is **not a trust decision** about the actual user's intentions. A valid
 OTLP document can still be a partial HTTP batch: this CLI cannot prove all
