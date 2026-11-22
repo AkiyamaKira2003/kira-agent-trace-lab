@@ -2,6 +2,11 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- Add optional source-only official OpenTelemetry ProtoJSON interoperability
+  proof after the OTLP-specific trace/span ID conversion from base64 to hex.
+  Exercise omitted empty groups, nested AnyValue, ordering and strict CLI
+  handling without modifying runtime parser or dependencies. This is not
+  a live exporter capture or independent security/authorization test.
 - Add deterministic, bounded OTLP importer mutation regressions (seed
   0x004D6) covering 41 invalid structures and nested AnyValue variants,
   24 valid resource/scope reorderings, 24 duplicate span identities,
