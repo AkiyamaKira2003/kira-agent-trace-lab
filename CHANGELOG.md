@@ -2,6 +2,11 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- Add an optional synthetic local-loopback official JavaScript OTLP/HTTP JSON
+  export proof. A pinned JS SDK transmits real HTTP JSON bytes to an ephemeral
+  localhost receiver, and the existing importer recognizes two tool calls
+  without changing trace/span IDs. Includes positive/negative CLI controls
+  and repeatable payload hashes; no production tools or runtime change.
 - Add optional source-only official OpenTelemetry ProtoJSON interoperability
   proof after the OTLP-specific trace/span ID conversion from base64 to hex.
   Exercise omitted empty groups, nested AnyValue, ordering and strict CLI
