@@ -2,6 +2,10 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- Add opt-in `audit-otlp --fail-on-deny` for deterministic CI policy
+  gates: allow exits 0, deny exits 1, invalid input exits 2. No change
+  to the default report-only exit 0 or report content; this does not
+  authenticate user consent, trace completeness or security metrics.
 - Add explicit `audit-otlp` policy-only CLI for a single saved OTLP JSON trace
   and a policy-only JSON file. Reuse the existing OTLP parser, strict
   schema validation and action scanner without inventing expected labels.

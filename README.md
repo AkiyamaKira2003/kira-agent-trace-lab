@@ -362,6 +362,20 @@ matrices or accuracy scores are output. `--format text` is also supported.
 A denial is a **policy decision** (CLI exit 0); malformed input is exit 2.
 Schema 1.1 guarded actions are denied when no external task grants are supplied.
 
+For CI pipelines that must fail when a *valid recorded trace* violates the
+chosen policy, opt in to **`--fail-on-deny`**:
+
+```sh
+python -m agent_trace_lab audit-otlp examples/otlp_spans.json --policy-file examples/otlp_audit_policy.json --fail-on-deny
+```
+
+The flag changes **only the exit status**: `0` for policy allow, `1`
+for policy deny, and `2` for malformed input. Without the flag, both
+valid verdicts still exit `0`. The same privacy-limited JSON or text
+report is emitted in either mode; no tool replay, expected label, output
+file or independently verified security result is added. See the
+[bounded CI gate test notes](docs/OPT_IN_POLICY_ONLY_CI_GATE_20261122.md).
+
 This is **not a trust decision** about the actual user's intentions. A valid
 OTLP document can still be a partial HTTP batch: this CLI cannot prove all
 agent actions were captured, or authenticate the policy or its author.

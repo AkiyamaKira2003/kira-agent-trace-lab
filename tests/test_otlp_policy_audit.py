@@ -31,17 +31,23 @@ class OtlpPolicyAuditTests(unittest.TestCase):
             "policy": load_suite(BASE_POLICY)["policy"],
         }
 
-    def run_audit(self, *, trace=None, policy=None, format="json"):
+    def run_audit(self, *, trace=None, policy=None, format="json",
+                  fail_on_deny=False):
         trace_file = self.folder / "recorded.json"
         policy_file = self.folder / "policy.json"
         trace_file.write_text(json.dumps(self.trace if trace is None else trace), encoding="utf-8")
         policy_file.write_text(json.dumps(
             self.policy_document if policy is None else policy), encoding="utf-8")
-        return subprocess.run([
+        args = [
             sys.executable, "-m", "agent_trace_lab", "audit-otlp",
             str(trace_file), "--policy-file", str(policy_file),
             "--format", format,
-        ], cwd=ROOT, capture_output=True, text=True, timeout=15)
+        ]
+        if fail_on_deny:
+            args.append("--fail-on-deny")
+        return subprocess.run(
+            args, cwd=ROOT, capture_output=True, text=True, timeout=15,
+        )
 
     def test_one_command_without_label_returns_only_policy_decision(self):
         result = self.run_audit()
@@ -190,6 +196,54 @@ class OtlpPolicyAuditTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertEqual(result.stdout, "")
         self.assertNotIn("Traceback", result.stderr)
+
+    def test_ci_gate_opt_in_allow_zero_deny_one_and_default_unchanged(self):
+        allowed_default = self.run_audit()
+        allowed_flag = self.run_audit(fail_on_deny=True)
+        self.assertEqual(allowed_flag.returncode, 0, allowed_flag.stderr)
+        self.assertEqual(allowed_flag.stdout, allowed_default.stdout)
+
+        restrictive = copy.deepcopy(self.policy_document)
+        restrictive["policy"]["max_actions"] = 1
+        denied_default = self.run_audit(policy=restrictive)
+        denied_flag = self.run_audit(policy=restrictive, fail_on_deny=True)
+        self.assertEqual(denied_default.returncode, 0, denied_default.stderr)
+        self.assertEqual(denied_flag.returncode, 1, denied_flag.stderr)
+        self.assertEqual(denied_flag.stdout, denied_default.stdout)
+        self.assertEqual(json.loads(denied_flag.stdout)["actual"], "deny")
+        self.assertEqual(denied_flag.stderr, "")
+
+    def test_ci_gate_malformed_input_is_exit_two_without_partial_report(self):
+        invalid_trace = copy.deepcopy(self.trace)
+        spans = invalid_trace["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        spans[2]["spanId"] = spans[1]["spanId"]
+        failed = self.run_audit(trace=invalid_trace, fail_on_deny=True)
+        self.assertEqual(failed.returncode, 2)
+        self.assertEqual(failed.stdout, "")
+        self.assertNotIn("Traceback", failed.stderr)
+        invalid_policy = {
+            "schema_version": "1.0", "policy": {"max_actions": -1, "tools": {}},
+        }
+        failed_policy = self.run_audit(policy=invalid_policy, fail_on_deny=True)
+        self.assertEqual(failed_policy.returncode, 2)
+        self.assertEqual(failed_policy.stdout, "")
+
+    def test_ci_gate_denial_text_and_private_arguments_are_not_disclosed(self):
+        trace = copy.deepcopy(self.trace)
+        spans = trace["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        marker = "SYNTHETIC_SECRET_ARGUMENT_DO_NOT_PRINT_872451"
+        spans[1]["attributes"][2]["value"] = {
+            "stringValue": json.dumps({"path": f"/forbidden/{marker}"}),
+        }
+        for fmt in ("json", "text"):
+            with self.subTest(format=fmt):
+                result = self.run_audit(trace=trace, format=fmt, fail_on_deny=True)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertNotIn(marker, result.stdout + result.stderr)
+                self.assertNotIn("files.read", result.stdout + result.stderr)
+                self.assertNotIn("expected", result.stdout + result.stderr)
+                self.assertEqual(result.stderr, "")
+                self.assertEqual(list(self.folder.glob("*.tmp")), [])
 
 
 if __name__ == "__main__":
