@@ -2,6 +2,10 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- Add source-only offline negative tests for caller-declared OTLP HTTP
+  batch manifests, including bounded counts, SHA-256, file inventory,
+  cross-batch trace IDs and replay rejection. CLI explicitly disclaims
+  authenticated end-of-trace and permission labels. No runtime change.
 - Document the one-document OTLP importer completeness boundary with a real
   two-POST synthetic official JS exporter proof. A first valid POST can
   contain only one of two trace actions; explicit caller-assembled captures
