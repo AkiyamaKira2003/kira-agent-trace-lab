@@ -40,6 +40,8 @@ jobs:
         run: |
           python -m agent_trace_lab import-otlp examples/otlp_spans.json --policy-suite examples/suite.json --case-id ci_trace --expected allow --output artifacts/ci_trace.json
           python -m agent_trace_lab evaluate artifacts/ci_trace.json
+      - name: Offline policy-only CI consumer demo (allow 0 / deny 1 / malformed 2)
+        run: python -m scripts.verify_otlp_ci_consumer
       - name: Synthetic SWE tool-call import and evaluation
         run: |
           python -m agent_trace_lab import-swe examples/swe_recorded_row_synthetic.json --policy-suite examples/swe_structural_policy.json --case-id ci_swe_trace --expected allow --output artifacts/ci_swe_trace.json
