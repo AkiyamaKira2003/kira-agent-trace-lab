@@ -2,6 +2,11 @@
 
 ## Unreleased (0.5.0.dev2 development; not in published v0.5.0.dev1)
 
+- Document the one-document OTLP importer completeness boundary with a real
+  two-POST synthetic official JS exporter proof. A first valid POST can
+  contain only one of two trace actions; explicit caller-assembled captures
+  import both, while duplicate span IDs and unrelated trace IDs fail closed.
+  No automatic completeness assertion, production Collector or runtime change.
 - Add an optional synthetic local-loopback official JavaScript OTLP/HTTP JSON
   export proof. A pinned JS SDK transmits real HTTP JSON bytes to an ephemeral
   localhost receiver, and the existing importer recognizes two tool calls
