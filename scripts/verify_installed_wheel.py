@@ -369,6 +369,48 @@ def run(wheel: Path) -> dict[str, Any]:
         )
         if "unverified" not in installed_audit_text or "allow" not in installed_audit_text:
             raise SuiteError("installed audit text omitted provenance limitations")
+        # The CI gate must be explicit and preserve the same printed verdict.
+        # Use only an installed synthetic policy copy, not any real trace.
+        denial_policy = json.loads((work / "otlp_audit_policy.json").read_text(encoding="utf-8"))
+        denial_policy["policy"]["max_actions"] = 1
+        (work / "otlp_ci_denial_policy.json").write_text(
+            json.dumps(denial_policy), encoding="utf-8",
+        )
+        denied_args = [
+            "audit-otlp", "otlp_spans.json",
+            "--policy-file", "otlp_ci_denial_policy.json",
+        ]
+        report_only = _execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab", *denied_args],
+            work, env,
+        )
+        gated = _execute(
+            [str(launcher), *denied_args, "--fail-on-deny"],
+            work, env, expected_exit=1,
+        )
+        module_gated = _execute(
+            [sys.executable, "-S", "-m", "agent_trace_lab",
+             *denied_args, "--fail-on-deny"],
+            work, env, expected_exit=1,
+        )
+        allow_gated = _execute(
+            [str(launcher), *audit_args, "--fail-on-deny"],
+            work, env,
+        )
+        invalid_gated = _execute(
+            [str(launcher), "audit-otlp", "missing.json",
+             "--policy-file", "otlp_ci_denial_policy.json",
+             "--fail-on-deny"], work, env, expected_exit=2,
+        )
+        if (report_only != gated or report_only != module_gated
+                or module_audit != allow_gated
+                or json.loads(gated)["actual"] != "deny"
+                or any(key in gated for key in (
+                    '"expected"', '"accuracy"', '"confusion"',
+                    '"arguments"', "files.read", "docs.search",
+                ))
+                or invalid_gated):
+            raise SuiteError("installed opt-in policy CI exit gate broke report parity")
         # Structural preflight is intentionally independent of policy
         # evaluation and caller labels, and serializes no case/tool values.
         validate_args = ["validate", "suite.json", "--format", "json"]
@@ -756,6 +798,7 @@ def run(wheel: Path) -> dict[str, Any]:
         "installed_aggregate_only_report_verified": True,
         "installed_structural_only_validation_verified": True,
         "installed_otlp_policy_only_audit_verified": True,
+        "installed_otlp_policy_only_ci_exit_gate_verified": True,
         "installed_import_explicit_overwrite_verified": True,
         "installed_import_formats_verified": len(import_cases) - 1,
         "installed_import_commands_verified": len(import_cases),

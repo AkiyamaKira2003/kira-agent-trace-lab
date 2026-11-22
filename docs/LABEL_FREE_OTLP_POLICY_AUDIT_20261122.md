@@ -24,6 +24,9 @@ Malformed OTLP, no recorded tool calls, repeated or mixed IDs, missing
 tool arguments, missing timestamps, invalid policy fields and malformed
 JSON are rejected (exit 2). Valid `allow` and `deny` verdicts both return
 exit 0, since a denial is a finding, not a failure to parse.
+An optional `--fail-on-deny` flag changes valid-deny exit to 1 for CI
+without changing the JSON/text body, label provenance or incomplete-capture
+limitations; see [ATL-004DO](OPT_IN_POLICY_ONLY_CI_GATE_20261122.md).
 
 The output always marks `ground_truth_available=false`,
 `user_authorization_verified=false`, `security_metrics_available=false`,

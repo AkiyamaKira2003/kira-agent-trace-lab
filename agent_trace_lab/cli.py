@@ -113,6 +113,10 @@ def main(argv: list[str] | None = None) -> int:
         help="JSON object containing schema_version and policy only; no case labels",
     )
     audit_otlp.add_argument("--format", choices=("json", "text"), default="json")
+    audit_otlp.add_argument(
+        "--fail-on-deny", action="store_true",
+        help="CI gate: exit 1 on a valid deny verdict (default: report-only exit 0)",
+    )
     swe = subcommands.add_parser("import-swe", help="convert a local recorded SWE tool-call row into a suite")
     swe.add_argument("row", type=Path, help="a single saved JSON row, not a dataset API response envelope")
     swe.add_argument("--policy-suite", type=Path, required=True, help="validated suite providing the policy")
@@ -170,7 +174,9 @@ def main(argv: list[str] | None = None) -> int:
                     "Ground truth, human authorization, trace completeness and "
                     "security metrics unverified; no recorded actions executed."
                 )
-            return 0  # A denied action is a policy result, not a parser failure.
+            # Keep report-only inspection unchanged. CI may opt into status 1
+            # only after a complete, valid policy-only report was printed.
+            return 1 if args.fail_on_deny and report["actual"] == "deny" else 0
         if args.command == "validate":
             if args.output and args.suite.resolve() == args.output.resolve():
                 raise SuiteError("refusing to overwrite input suite")
