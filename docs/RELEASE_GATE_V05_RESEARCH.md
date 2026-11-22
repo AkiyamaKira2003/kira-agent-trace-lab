@@ -7,7 +7,38 @@ runtime authorization service, sandbox, or prompt-injection detector.
 This matrix is a release-preflight evidence record, not a claim that
 v0.5 has been tagged or published.
 
-## Evidence matrix
+## Current source-only refresh — ATL-004DJ (2026-11-22)
+
+**Decision: local packaging evidence PASS; release/security qualification HOLD.**
+The current clean `main` at `fdaeb92f64cad55cfc5c6554c4267fbaeb14d731`
+matched `origin/main` and the GitHub `main` ref before this refresh. Source
+`pyproject.toml` declares **0.5.0.dev2**, Python >=3.10, MIT, and no runtime
+dependencies. This is an **unpublished development source version**, not the
+public v0.5.0.dev1 research prerelease or stable v0.4.0.
+
+| Current check | Observed evidence | Decision |
+| --- | --- | --- |
+| Full Python 3.12.10 regression / compilation | `python -m unittest discover -s tests -q`: 410 discovered, 406 PASS, 4 pre-existing Windows environment SKIP; `compileall` PASS | **PASS locally**, 4 not executed |
+| Clean direct wheel | `0.5.0.dev2` pure-Python wheel SHA256 `5a03aacff1d3cff29ec9ccac075e4d3bb495e515ef39542571583a5d537a73cf`; 15 members, source-matching metadata, console and module installed smoke PASS | **PASS**, not a published asset |
+| MIT-only source archive | `0.5.0.dev2` sdist SHA256 `f8e69b22b49925f7092d853ce59dcc1cfc9f603b8b5b16b5cbac05a4030d3ed5`; 23 file members; strict source-byte/metadata and archive-entry inventory PASS | **PASS locally** |
+| Wheel rebuilt from validated archive | `scripts.wheel_from_sdist` and isolated installed smoke PASS; SHA256 `867bbfe2c8f92fd3ed86efff0f59a6ad2d655a2f028c9c0b0b5bbc2d4a2eceb7` | **PASS**, byte identity with direct build not claimed |
+| Repeated date-pinned wheels | Two same-environment builds at `SOURCE_DATE_EPOCH=1795308542` produced the same 38,016-byte SHA256 `d998861021b960fe60cdb51ecbb59aa6b890ef4852fc6f25ed68cbe79428583b` | **PASS within environment only** |
+| Package privacy / dependency boundary | Direct wheel contains only nine `agent_trace_lab/*.py` files, MIT license and six `.dist-info` files. Archive contains only distributable source, metadata, license and README. Wheel `Requires-Dist` empty. No JS/Proto SDK, `node_modules`, research scripts, recorded fixtures, `docs`, `tests`, `examples` or `artifacts` in either inventory | **PASS for inspected archives**, not a whole-host security scan |
+| GitHub four-job matrix | Exact initial source checkpoint `fdaeb92` run [44968464667](https://github.com/AkiyamaKira2003/kira-agent-trace-lab/actions/runs/44968464667) completed SUCCESS on Ubuntu/Windows Python 3.10/3.12 (all 4 jobs) | **PASS for that commit**; any later documentation commit needs its own CI evidence |
+| Real-user grants / efficacy / independent review | No independently authenticated approvals, two independent human reviewers, representative accepted authorization labels or population-level safety evaluation | **HOLD** for production-security claims, stable v0.5 and qualified showcase |
+
+These are synthetic/offline packaging and functional tests, not an independent
+penetration test, real-agent effectiveness measurement or production deployment.
+Test-only `build==1.2.2.post1` was installed under Git-ignored `artifacts/`;
+no dependency was added to the runtime package. The direct and sdist-rebuilt
+wheel hashes differ because only the separate reproducibility check pins the
+build epoch; equivalence here means independently verified *behavior* and
+metadata, not identical wheel bytes. The owned local evidence directory is
+`artifacts/atl004dj_dev2_release_0752_bs8vK` (ignored, never published).
+No tag, release, GitHub asset, PyPI package, KiraShop or external service was
+changed by this research gate.
+
+## Historical evidence matrix — ATL-004T (source 136989c)
 
 | Gate | Grounded evidence | Result / consequence |
 | --- | --- | --- |
@@ -22,7 +53,7 @@ v0.5 has been tagged or published.
 | Authentic external tool-action interoperability | docs/RECORDED_TRACE_SOURCE_AUDIT_20261120.md records 48 pinned NVIDIA tool-call actions; AgentDojo task/runs source-pinned with 20 of 24 planned exposure files available | **PASS narrowly for selected recorded-action formats**; not full conversation equivalence or representative testing |
 | Independently authenticated permission labels | docs/AGENTDOJO_REVIEW_PACKET.md retains 24 human-grant abstentions; authentic user grants and two independent authenticated reviewers absent | **BLOCKED (ATL-004/005)** |
 | Generalizable authorization/detection evaluation | No representative, independently ground-truthed safety corpus; synthetic fixture matches are not precision/recall of an attack detector | **BLOCKED (ATL-006)** |
-| Product showcase/release | Stable GitHub release v0.4.0 verified previously; current pyproject version is **0.5.0.dev0**, which is development and was not published as a stable 0.5 release; no qualified KiraShop integration | **HOLD (ATL-007)**; no release tag, deploy, or performance claims authorized by this audit |
+| Product showcase/release | At the original ATL-004T checkpoint, stable GitHub release v0.4.0 was verified; the then-current pyproject version was **0.5.0.dev0**, not stable 0.5; no qualified KiraShop integration | **HOLD (ATL-007)**; no release tag, deploy, or performance claims authorized by that audit |
 
 ## Repeatable bounded checks
 
